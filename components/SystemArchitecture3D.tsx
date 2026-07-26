@@ -544,33 +544,16 @@ function PulseFollower({
   );
 }
 
-function IdleAutoRotate({ enabled }: { enabled: boolean }) {
-  const { camera } = useThree();
-  const controlsRef = useRef<any>(null);
-  const angleRef = useRef(0);
-
-  useFrame((_, dt) => {
-    if (!enabled) return;
-    angleRef.current += dt * 0.12;
-    const r = 13;
-    const y = 2.4 + Math.sin(angleRef.current * 0.6) * 0.6;
-    camera.position.x = Math.cos(angleRef.current) * r;
-    camera.position.z = Math.sin(angleRef.current) * r;
-    camera.position.y = y;
-    camera.lookAt(0.8, 1.4, 0);
-  });
-
-  return null;
-}
-
 interface SceneProps {
   mode: FlowMode;
   stepIndex: number;
   pulseByEdge: Record<string, number>;
-  autoRotate: boolean;
+  isInteractive: boolean;
 }
 
-function Scene({ mode, stepIndex, pulseByEdge, autoRotate }: SceneProps) {
+function Scene({ mode, stepIndex, pulseByEdge, isInteractive }: SceneProps) {
+  const { camera } = useThree();
+
   const nodesMap = useMemo(() => {
     const m: Record<string, NodeDef> = {};
     NODES.forEach((n) => (m[n.id] = n));
@@ -580,6 +563,22 @@ function Scene({ mode, stepIndex, pulseByEdge, autoRotate }: SceneProps) {
   const stepEdge = EDGES.find((e) => e.order === stepIndex);
   const stepFrom = stepEdge ? stepEdge.from : null;
   const stepTo = stepEdge ? stepEdge.to : null;
+
+  // Smoothly reset camera when interaction is locked (disabled)
+  useEffect(() => {
+    if (!isInteractive) {
+      gsap.to(camera.position, {
+        x: 1.0,
+        y: 2.2,
+        z: 12.5,
+        duration: 0.8,
+        ease: 'power3.out',
+        onUpdate: () => {
+          camera.lookAt(0.8, 1.4, 0);
+        },
+      });
+    }
+  }, [isInteractive, camera]);
 
   return (
     <>
@@ -612,7 +611,17 @@ function Scene({ mode, stepIndex, pulseByEdge, autoRotate }: SceneProps) {
 
       {/* Nodes */}
       {NODES.map((n) => {
-        const active = n.id === stepFrom || n.id === stepTo;
+        let active = false;
+        if (stepEdge) {
+          if (n.id === stepFrom) {
+            active = true;
+          } else if (n.id === stepTo) {
+            const progress = pulseByEdge[stepEdge.id] ?? -1;
+            if (progress >= 0.9) {
+              active = true;
+            }
+          }
+        }
         return <NodeMesh key={n.id} def={n} active={active} />;
       })}
 
@@ -631,6 +640,8 @@ function Scene({ mode, stepIndex, pulseByEdge, autoRotate }: SceneProps) {
       })}
 
       <OrbitControls
+        enabled={isInteractive}
+        enableZoom={false}
         enableDamping
         dampingFactor={0.08}
         enablePan={false}
@@ -640,7 +651,6 @@ function Scene({ mode, stepIndex, pulseByEdge, autoRotate }: SceneProps) {
         maxPolarAngle={0.78 * Math.PI}
         target={[0.8, 1.4, 0]}
       />
-      <IdleAutoRotate enabled={autoRotate} />
       <Suspense fallback={null}>
         <Environment preset="city" />
       </Suspense>
@@ -668,22 +678,9 @@ export default function SystemArchitecture3D() {
   const [mode, setMode] = useState<FlowMode>('miss');
   const [stepIndex, setStepIndex] = useState<number>(-1);
   const [pulseByEdge, setPulseByEdge] = useState<Record<string, number>>({});
-  const [autoRotate, setAutoRotate] = useState<boolean>(true);
+  const [isInteractive, setIsInteractive] = useState<boolean>(false);
   const startedRef = useRef(false);
-
-  // Idle reset for auto-rotate
-  const idleTimerRef = useRef<number | null>(null);
-  const handleInteract = () => {
-    setAutoRotate(false);
-    if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
-    idleTimerRef.current = window.setTimeout(() => setAutoRotate(true), 4500);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
-    };
-  }, []);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
 
   // Run step animation whenever mode changes OR section scrolls into view
   useEffect(() => {
@@ -691,9 +688,8 @@ export default function SystemArchitecture3D() {
     if (!root) return;
 
     const run = () => {
-      if (startedRef.current) {
-        // Kill any running tweens first
-        gsap.killTweensOf({ _dummy: true });
+      if (tlRef.current) {
+        tlRef.current.kill();
       }
       startedRef.current = true;
 
@@ -706,34 +702,39 @@ export default function SystemArchitecture3D() {
       setPulseByEdge({});
 
       const tl = gsap.timeline({ defaults: { ease: 'none' } });
+      tlRef.current = tl;
       const pulseProgresses: Record<string, number> = {};
+
+      const travelDuration = 1.0;
+      const pauseDuration = 1.4;
+      const stepDuration = travelDuration + pauseDuration;
 
       edgesToRun.forEach((e, i) => {
         const pulseObj = { t: -1 };
         pulseProgresses[e.id] = -1;
-        const startStep = i * 0.72;
+        const startStep = i * stepDuration;
+
+        // 1. Highlight the current edge/step
         tl.add(() => setStepIndex(e.order), startStep);
+
+        // 2. Animate the pulse/particle traveling along the edge
         tl.to(
           pulseObj,
           {
             t: 1.05,
-            duration: mode === 'replay' ? 1.35 : 0.9,
+            duration: travelDuration,
             ease: 'power2.inOut',
             onUpdate: () => {
               pulseProgresses[e.id] = pulseObj.t;
               setPulseByEdge({ ...pulseProgresses });
             },
           },
-          startStep + 0.05,
+          startStep + 0.02,
         );
       });
 
       // Replay mode: keep repeating
       if (mode === 'replay') {
-        const cycleDuration = Math.max(0.2, edgesToRun.length * 0.72 + 1.8);
-        tl.call(() => {
-          // restart via small timeout so React state settles
-        });
         tl.eventCallback('onComplete', () => {
           window.setTimeout(() => {
             if (sectionRef.current) run();
@@ -758,7 +759,7 @@ export default function SystemArchitecture3D() {
 
     return () => {
       observer.disconnect();
-      gsap.killTweensOf('*');
+      if (tlRef.current) tlRef.current.kill();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
@@ -801,7 +802,7 @@ export default function SystemArchitecture3D() {
   }, []);
 
   return (
-    <section ref={sectionRef} id="system-design" className="w-full max-w-5xl" onPointerDown={handleInteract} onWheel={handleInteract}>
+    <section ref={sectionRef} id="system-design" className="w-full max-w-5xl">
       <div className="text-center mb-5">
         <p className="text-xs uppercase tracking-[0.18em] text-purple font-semibold mb-1.5" data-sa-sub>
           System Architecture
@@ -861,7 +862,7 @@ export default function SystemArchitecture3D() {
             <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             <path d="M12 8v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Drag to orbit · auto-rotates when idle
+          Click model to orbit and explore
         </span>
       </div>
 
@@ -880,16 +881,87 @@ export default function SystemArchitecture3D() {
         <Canvas
           shadows
           dpr={[1, 1.5]}
-          camera={{ position: [12, 3.5, 9], fov: 42, near: 0.1, far: 60 }}
+          camera={{ position: [1.0, 2.2, 12.5], fov: 42, near: 0.1, far: 60 }}
           gl={{ antialias: true, powerPreference: 'high-performance' }}
         >
           <Scene
             mode={mode}
             stepIndex={stepIndex}
             pulseByEdge={pulseByEdge}
-            autoRotate={autoRotate}
+            isInteractive={isInteractive}
           />
         </Canvas>
+
+        {/* Overlay when NOT interactive */}
+        {!isInteractive && (
+          <div
+            onClick={() => setIsInteractive(true)}
+            className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:bg-black/20"
+            style={{
+              backgroundColor: 'rgba(13, 17, 23, 0.45)',
+              backdropFilter: 'blur(1px)',
+              zIndex: 20,
+            }}
+          >
+            <div
+              className="flex flex-col items-center gap-3 px-6 py-4 rounded-xl border transition-all duration-300 hover:scale-[1.03]"
+              style={{
+                borderColor: 'rgba(88, 166, 255, 0.3)',
+                backgroundColor: 'rgba(22, 27, 34, 0.92)',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(88, 166, 255, 0.08)',
+              }}
+            >
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={COLORS.blue}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <polyline points="21 3 21 8 16 8" />
+              </svg>
+              <span className="text-sm font-semibold tracking-wide text-center" style={{ color: 'var(--text)' }}>
+                Click to Orbit & Interact in 3D
+              </span>
+              <span className="text-xs text-muted text-center max-w-[220px]">
+                Drag to rotate the architecture layout. Scroll scrolls the page normally.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Lock button when interactive */}
+        {isInteractive && (
+          <button
+            onClick={() => setIsInteractive(false)}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-semibold shadow-lg transition-all duration-200 hover:bg-opacity-20 hover:scale-105"
+            style={{
+              borderColor: 'rgba(88, 166, 255, 0.4)',
+              backgroundColor: 'rgba(22, 27, 34, 0.92)',
+              color: COLORS.blue,
+              zIndex: 20,
+            }}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            Lock Camera View
+          </button>
+        )}
 
         {/* Corner HUD */}
         <div
