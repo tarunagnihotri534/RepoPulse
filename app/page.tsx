@@ -6,7 +6,7 @@ import { gsap } from 'gsap';
 import dynamic from 'next/dynamic';
 
 const Console = dynamic(() => import('@/components/Console'), { ssr: false });
-const SystemFlowDiagram = dynamic(() => import('@/components/SystemFlowDiagram'), { ssr: false });
+const SystemArchitecture3D = dynamic(() => import('@/components/SystemArchitecture3D'), { ssr: false });
 
 interface UsageData {
   month: string;
@@ -100,10 +100,11 @@ export default function HomePage() {
       const usageWrap    = root.querySelector('[data-usage]')        as HTMLElement | null;
       const usageFill    = root.querySelector('[data-usage-fill]')   as HTMLElement | null;
       const featureCards = gsap.utils.toArray<HTMLElement>('[data-feature]', root);
+      const heroFeatureCardsOnly = featureCards.filter((el) => !(el.closest('#docs')));
 
       const showAll = () => {
         [heroLogo, pill, h1, h1Accent, p, usageWrap].forEach((el) => { if (el) gsap.set(el, { clearProps: 'all' }); });
-        [...ctas, ...partners, ...featureCards].forEach((el) => gsap.set(el, { clearProps: 'all' }));
+        [...ctas, ...partners, ...heroFeatureCardsOnly].forEach((el) => gsap.set(el, { clearProps: 'all' }));
       };
 
       if (reduced) {
@@ -123,7 +124,9 @@ export default function HomePage() {
       if (usageWrap)    gsap.set(usageWrap,    { opacity: 0, y: 10 });
       ctas.forEach((el) =>         gsap.set(el, { opacity: 0, y: 10, scale: 0.98 }));
       partners.forEach((el) =>     gsap.set(el, { opacity: 0, y: 6 }));
-      featureCards.forEach((el) => gsap.set(el, { opacity: 0, y: 16 }));
+      // Only target hero feature grid — doc cards (#docs) use their own scroll-reveal
+      const heroFeatureCards = featureCards.filter((el) => !(el.closest('#docs')));
+      heroFeatureCards.forEach((el) => gsap.set(el, { opacity: 0, y: 16 }));
       if (usageFill)    gsap.set(usageFill,    { scaleX: 0, transformOrigin: 'left center' });
 
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
@@ -135,7 +138,7 @@ export default function HomePage() {
         .to(ctas,         { opacity: 1, y: 0, scale: 1, stagger: 0.08,  duration: 0.45 }, 0.56)
         .to(partners,     { opacity: 1, y: 0, stagger: 0.04,            duration: 0.35 }, 0.70)
         .to(usageWrap,    { opacity: 1, y: 0,                           duration: 0.40 }, 0.98)
-        .to(featureCards, { opacity: 1, y: 0, stagger: 0.06,            duration: 0.48 }, 1.08);
+        .to(heroFeatureCards, { opacity: 1, y: 0, stagger: 0.06,            duration: 0.48 }, 1.08);
 
       if (h1Accent) {
         tl.to(h1Accent, {
@@ -166,6 +169,72 @@ export default function HomePage() {
       delay: 0.95,
     });
   }, [usage]);
+
+  // Documentation section scroll-reveal (independent of hero timeline)
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const docs = root.querySelector('#docs') as HTMLElement | null;
+    if (!docs) return;
+
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let observer: IntersectionObserver | null = null;
+    let safety: number | null = null;
+
+    const ctx = gsap.context(() => {
+      const headings = gsap.utils.toArray<HTMLElement>('h3[data-doc-heading]', docs);
+      const cards    = gsap.utils.toArray<HTMLElement>('[data-doc-card]', docs);
+
+      if (reduced) {
+        [...headings, ...cards].forEach((el) => gsap.set(el, { clearProps: 'all' }));
+        return;
+      }
+
+      gsap.set(headings, { opacity: 0, x: -10 });
+      gsap.set(cards,    { opacity: 0, y: 18, scale: 0.985 });
+
+      const runReveal = () => {
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+        tl.to(headings, { opacity: 1, x: 0, stagger: 0.08, duration: 0.45 }, 0)
+          .to(cards,    { opacity: 1, y: 0, scale: 1, stagger: 0.05, duration: 0.5 }, 0.12);
+      };
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (!e.isIntersecting) return;
+            runReveal();
+            if (observer) observer.disconnect();
+            if (safety !== null) {
+              window.clearTimeout(safety);
+              safety = null;
+            }
+          });
+        },
+        { threshold: 0.15 },
+      );
+      observer.observe(docs);
+
+      // Safety net: if IO never fires (e.g., already in view on load), run after 1.2 s
+      safety = window.setTimeout(() => {
+        const rect = docs.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.9 && rect.bottom > 0) {
+          runReveal();
+          if (observer) observer.disconnect();
+          safety = null;
+        }
+      }, 1200);
+    }, docs);
+
+    return () => {
+      if (observer) observer.disconnect();
+      if (safety !== null) window.clearTimeout(safety);
+      ctx.revert();
+    };
+  }, []);
 
   // ── Modal open/close + GSAP transitions ────────────────────
   const reducedMotion =
@@ -372,8 +441,8 @@ export default function HomePage() {
         <Console />
       </section>
 
-      {/* 3. System Flow Diagram */}
-      <SystemFlowDiagram />
+      {/* 3. System Architecture (3D) */}
+      <SystemArchitecture3D />
 
       {/* 4. Documentation */}
       <section className="w-full max-w-4xl" id="docs">
@@ -388,12 +457,15 @@ export default function HomePage() {
         <div className="flex flex-col gap-8">
           {DOCS.map(({ category, items }) => (
             <div key={category}>
-              <h3 className="text-xs uppercase tracking-[0.16em] text-muted font-semibold mb-3 pb-2 border-b border-border">
+              <h3
+                data-doc-heading
+                className="text-xs uppercase tracking-[0.16em] text-muted font-semibold mb-3 pb-2 border-b border-border"
+              >
                 {category}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {items.map(({ title, body }) => (
-                  <div key={title} className="feature-card" data-feature>
+                  <div key={title} className="feature-card" data-doc-card>
                     <p className="feature-title font-boogaloo text-base mb-1">{title}</p>
                     <p className="feature-desc text-xs leading-relaxed">{body}</p>
                   </div>

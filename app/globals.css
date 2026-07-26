@@ -509,6 +509,10 @@ code, pre, kbd, samp, .font-mono {
   width: 22px;
   height: 22px;
   display: block;
+  object-fit: contain;
+  border-radius: 9999px;
+  background-color: #0a0a0a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 }
 
 /* ── 7. Modal / dialog (form launcher) ───────────────────────────────── */
