@@ -38,6 +38,9 @@ interface NodeDef {
   color: string;
   accent: string;
   size?: number;
+  logo: string;
+  logoBg?: string;
+  logoSize?: number;
 }
 
 const NODES: NodeDef[] = [
@@ -50,6 +53,9 @@ const NODES: NodeDef[] = [
     color: '#161b22',
     accent: COLORS.blue,
     size: 1.1,
+    logo: '/chrome-logo.svg',
+    logoBg: 'linear-gradient(135deg, #ffffff 0%, #ffffff 100%)',
+    logoSize: 1.12,
   },
   {
     id: 'api',
@@ -60,6 +66,8 @@ const NODES: NodeDef[] = [
     color: '#161b22',
     accent: COLORS.purple,
     size: 0.95,
+    logo: 'https://cdn.simpleicons.org/nextdotjs/000000',
+    logoBg: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
   },
   {
     id: 'cache',
@@ -70,6 +78,8 @@ const NODES: NodeDef[] = [
     color: '#0f2a17',
     accent: COLORS.green,
     size: 1.0,
+    logo: 'https://cdn.simpleicons.org/prisma/2D3748',
+    logoBg: 'linear-gradient(135deg, #ffffff 0%, #ecfeff 100%)',
   },
   {
     id: 'cap',
@@ -80,6 +90,8 @@ const NODES: NodeDef[] = [
     color: '#2a220f',
     accent: COLORS.amber,
     size: 0.85,
+    logo: 'https://cdn.simpleicons.org/cloudflare/F38020',
+    logoBg: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
   },
   {
     id: 'github',
@@ -90,6 +102,8 @@ const NODES: NodeDef[] = [
     color: '#161b22',
     accent: COLORS.blue,
     size: 1.0,
+    logo: '/github.png',
+    logoBg: 'linear-gradient(135deg, #0a0a0a 0%, #1f2937 100%)',
   },
   {
     id: 'metrics',
@@ -100,6 +114,8 @@ const NODES: NodeDef[] = [
     color: '#161b22',
     accent: COLORS.purple,
     size: 1.05,
+    logo: 'https://cdn.simpleicons.org/chartdotjs/FF6384',
+    logoBg: 'linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%)',
   },
   {
     id: 'dashboard',
@@ -110,6 +126,8 @@ const NODES: NodeDef[] = [
     color: '#0f2a17',
     accent: COLORS.green,
     size: 1.15,
+    logo: '/artificial-heart.png',
+    logoBg: 'linear-gradient(135deg, #0f2a17 0%, #14532d 100%)',
   },
 ];
 
@@ -233,6 +251,9 @@ function buildCatmullPath(a: THREE.Vector3, b: THREE.Vector3, via: [number, numb
 function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boolean; accentOverride?: string }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const accent = accentOverride ?? def.accent;
+  const size = def.size ?? 1;
+  // logo disc diameter per shape, with per-node scaling via logoSize
+  const logoPx = Math.round(86 * (def.shape === 'ico' ? 0.85 : 1) * (def.logoSize ?? 1));
 
   useFrame((_, dt) => {
     if (meshRef.current) {
@@ -243,11 +264,11 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
 
   const geometry =
     def.shape === 'box' ? (
-      <RoundedBox args={[def.size ?? 1, def.size ?? 1, def.size ?? 1]} radius={0.15} smoothness={4} />
+      <RoundedBox args={[size, size, size]} radius={0.15} smoothness={4} />
     ) : def.shape === 'sphere' ? (
-      <Sphere args={[(def.size ?? 1) * 0.58, 32, 32]} />
+      <Sphere args={[size * 0.58, 32, 32]} />
     ) : (
-      <Icosahedron args={[(def.size ?? 1) * 0.58, 0]} />
+      <Icosahedron args={[size * 0.58, 0]} />
     );
 
   return (
@@ -257,36 +278,81 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
           {geometry}
           <meshStandardMaterial
             color={def.color}
-            metalness={0.55}
-            roughness={0.35}
+            metalness={0.75}
+            roughness={0.22}
             emissive={accent}
-            emissiveIntensity={active ? 0.55 : 0.12}
+            emissiveIntensity={active ? 0.35 : 0.08}
+            transparent
+            opacity={active ? 0.92 : 0.78}
           />
         </mesh>
         <mesh>
           {def.shape === 'box' ? (
             <RoundedBox
-              args={[(def.size ?? 1) * 1.08, (def.size ?? 1) * 1.08, (def.size ?? 1) * 1.08]}
+              args={[size * 1.08, size * 1.08, size * 1.08]}
               radius={0.17}
               smoothness={3}
             />
           ) : def.shape === 'sphere' ? (
-            <Sphere args={[(def.size ?? 1) * 0.64, 32, 32]} />
+            <Sphere args={[size * 0.64, 32, 32]} />
           ) : (
-            <Icosahedron args={[(def.size ?? 1) * 0.64, 0]} />
+            <Icosahedron args={[size * 0.64, 0]} />
           )}
           <meshBasicMaterial
             color={accent}
             transparent
-            opacity={active ? 0.22 : 0.06}
+            opacity={active ? 0.26 : 0.08}
             side={THREE.BackSide}
           />
         </mesh>
       </Float>
 
+      {/* Logo disc centered on the node (billboard via Html) */}
+      <Html
+        position={[0, 0, 0]}
+        center
+        distanceFactor={4.2}
+        zIndexRange={[40, 10]}
+        style={{ pointerEvents: 'none' }}
+      >
+        <div
+          aria-hidden
+          style={{
+            width: logoPx,
+            height: logoPx,
+            borderRadius: '50%',
+            display: 'grid',
+            placeItems: 'center',
+            background: def.logoBg ?? '#ffffff',
+            boxShadow: `0 0 0 2px rgba(255,255,255,0.08) inset, 0 0 0 2px ${accent}${active ? 'ee' : '55'}, ${
+              active ? `0 14px 40px -10px ${accent}99, 0 0 44px ${accent}55` : `0 10px 24px -12px rgba(0,0,0,0.7)`
+            }`,
+            transform: `scale(${active ? 1.06 : 1})`,
+            transition: 'transform 220ms ease-out, box-shadow 240ms ease-out',
+            overflow: 'hidden',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={def.logo}
+            alt={def.label}
+            draggable={false}
+            style={{
+              width: '70%',
+              height: '70%',
+              objectFit: 'contain',
+              display: 'block',
+              userSelect: 'none',
+              // @ts-expect-error — non-standard drag prevention, harmless for actual DOM
+              WebkitUserDrag: 'none',
+            }}
+          />
+        </div>
+      </Html>
+
       {/* Hanging short-label tag on top */}
       <Html
-        position={[0, (def.size ?? 1) * 0.85 + 0.45, 0]}
+        position={[0, size * 0.9 + 0.5, 0]}
         center
         distanceFactor={8}
         zIndexRange={[10, 0]}
@@ -315,7 +381,7 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
 
       {/* Large floating label below the node (HTML, avoids troika-three-text incompatibility) */}
       <Html
-        position={[0, -((def.size ?? 1) * 0.75 + 0.7), 0]}
+        position={[0, -(size * 0.75 + 0.7), 0]}
         center
         distanceFactor={8}
         zIndexRange={[5, 0]}

@@ -306,7 +306,8 @@ export default function DocsSection() {
         <h2 className="text-2xl md:text-3xl tracking-tight text-[#eceef1] mb-3">
           How RepoPulse works
         </h2>
-        <p className="text-sm text-muted max-w-xl mx-auto leading-relaxed">
+        <p className="text-sm text-muted max-w-xl mx-auto leading-relaxed"
+           style={{ fontFamily: 'var(--font-lato)' }}>
           Everything from the request flow to the metric calculations —
           annotated with the real code running in production.
         </p>
@@ -367,6 +368,7 @@ export default function DocsSection() {
                   lineHeight: 1.75,
                   margin: 0,
                   paddingLeft: '0.25rem',
+                  fontFamily: 'var(--font-lato)',
                 }}>
                   {entry.desc}
                 </p>

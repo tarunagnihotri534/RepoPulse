@@ -26,7 +26,7 @@ const config: Config = {
       fontFamily: {
         sans:     ['system-ui', '-apple-system', 'Segoe UI', 'Helvetica', 'Arial', 'sans-serif'],
         mono:     ['SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', 'monospace'],
-        boogaloo:  ['Boogaloo', 'system-ui', 'sans-serif'],
+        boogaloo:  ['"Changa One"', 'system-ui', 'sans-serif'],
       },
     },
   },
