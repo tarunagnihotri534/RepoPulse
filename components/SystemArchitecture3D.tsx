@@ -663,14 +663,12 @@ export default function SystemArchitecture3D() {
         );
       });
 
-      // Replay mode: keep repeating
-      if (mode === 'replay') {
-        tl.eventCallback('onComplete', () => {
-          window.setTimeout(() => {
-            if (sectionRef.current) run();
-          }, 900);
-        });
-      }
+      // Automatic restart once completed the workflow (loops for all modes)
+      tl.eventCallback('onComplete', () => {
+        window.setTimeout(() => {
+          if (sectionRef.current) run();
+        }, 1800);
+      });
     };
 
     const observer = new IntersectionObserver(
@@ -678,8 +676,6 @@ export default function SystemArchitecture3D() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             run();
-            // For non-replay modes: fire once, then keep observing for re-entry
-            if (mode !== 'replay') observer.disconnect();
           }
         });
       },
