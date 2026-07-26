@@ -1,0 +1,36 @@
+// Prisma schema — SQLite backend for MCP Repo Health Tracker
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Per-repo cached snapshot ──────────────────────────────────────────────────
+// One row per unique owner/repo pair.
+// snapshotJson stores the full DailySnapshot as a JSON string.
+// cachedAt is a Unix timestamp (ms) so we can do arithmetic in JS.
+model RepoCache {
+  id           Int    @id @default(autoincrement())
+  owner        String
+  repo         String
+  snapshotJson String // serialised DailySnapshot
+  cachedAt     BigInt // Date.now() at write time
+
+  @@unique([owner, repo])
+  @@map("repo_cache")
+}
+
+// ── Global monthly usage counter ──────────────────────────────────────────────
+// One row per calendar month (key = "YYYY-MM").
+// count is incremented on every cache-miss lookup (i.e. a real GitHub fetch).
+// Cache hits do NOT increment the counter.
+model Usage {
+  month String @id // e.g. "2025-07"
+  count Int    @default(0)
+
+  @@map("usage")
+}

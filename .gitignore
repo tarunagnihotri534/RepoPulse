@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# TypeScript build output (legacy src/ compilation)
+dist/
+
+# Environment files — never commit secrets
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# SQLite database — persisted on the server, not in the repo
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Prisma generated client (regenerated on install)
+# node_modules/@prisma/client is covered above
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Vercel
+.vercel
