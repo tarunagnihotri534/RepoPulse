@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import FloatingBlocks from '@/components/FloatingBlocks';
+import FlickeringGrid from '@/components/FlickeringGrid';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-base text-text">
         <div className="grid-overlay" aria-hidden="true" />
         <div className="radial-wash" aria-hidden="true" />
+        <FlickeringGrid />
         <FloatingBlocks />
 
         <header className="nav-header sticky top-0 z-50 border-b border-border">
