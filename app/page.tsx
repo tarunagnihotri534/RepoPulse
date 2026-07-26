@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 
 const Console = dynamic(() => import('@/components/Console'), { ssr: false });
 const SystemArchitecture3D = dynamic(() => import('@/components/SystemArchitecture3D'), { ssr: false });
+const DocsSection = dynamic(() => import('@/components/DocsSection'), { ssr: false });
 
 interface UsageData {
   month: string;
@@ -23,33 +24,6 @@ const FEATURES = [
   { title: 'Contributors',  desc: 'Total contributor count, new contributors in the last 30 days, and a top-10 leaderboard.' },
   { title: 'Trend Charts',  desc: 'Health score, stars / forks, open issues / PRs, and new contributors charted over time.' },
   { title: '6-hour Cache',  desc: 'Results are cached for 6 hours — repeated lookups of the same repo return instantly without counting against the cap.' },
-];
-
-const DOCS = [
-  {
-    category: 'Getting Started',
-    items: [
-      { title: 'Prerequisites', body: 'Node.js ≥ 18, a GitHub fine-grained PAT (Public Repositories, read-only), and a writable filesystem for SQLite.' },
-      { title: 'Quick Setup', body: 'Clone → npm install → cp .env.example .env.local → fill GITHUB_TOKEN → npx prisma db push → npm run dev.' },
-      { title: 'Environment Variables', body: 'GITHUB_TOKEN (required) · DATABASE_URL (required, e.g. file:./tracker.db) · MONTHLY_CAP (optional, default 50).' },
-    ],
-  },
-  {
-    category: 'Usage Cap',
-    items: [
-      { title: 'Global 50/month', body: 'The cap applies across all visitors combined. Cache hits (same repo within 6 h) never count against it.' },
-      { title: 'Cap Reset', body: 'Resets automatically on the 1st of each calendar month. Adjust via MONTHLY_CAP env variable.' },
-      { title: 'Cached Results', body: 'Even when the cap is reached, previously cached repos continue to load normally for all visitors.' },
-    ],
-  },
-  {
-    category: 'Deployment',
-    items: [
-      { title: 'Vercel (recommended)', body: 'Works with DATABASE_URL=file:/tmp/tracker.db for ephemeral storage, or use Turso/LibSQL for persistence across deploys.' },
-      { title: 'Railway / Render', body: 'Mount a persistent volume at /data and set DATABASE_URL=file:/data/tracker.db for a fully persistent SQLite setup.' },
-      { title: 'Slack Digest', body: 'Set SLACK_WEBHOOK_URL as a secret and trigger scripts/slack-digest.ts via the weekly GitHub Actions cron.' },
-    ],
-  },
 ];
 
 const PARTNERS = [
@@ -169,72 +143,6 @@ export default function HomePage() {
       delay: 0.95,
     });
   }, [usage]);
-
-  // Documentation section scroll-reveal (independent of hero timeline)
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const docs = root.querySelector('#docs') as HTMLElement | null;
-    if (!docs) return;
-
-    const reduced =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    let observer: IntersectionObserver | null = null;
-    let safety: number | null = null;
-
-    const ctx = gsap.context(() => {
-      const headings = gsap.utils.toArray<HTMLElement>('h3[data-doc-heading]', docs);
-      const cards    = gsap.utils.toArray<HTMLElement>('[data-doc-card]', docs);
-
-      if (reduced) {
-        [...headings, ...cards].forEach((el) => gsap.set(el, { clearProps: 'all' }));
-        return;
-      }
-
-      gsap.set(headings, { opacity: 0, x: -10 });
-      gsap.set(cards,    { opacity: 0, y: 18, scale: 0.985 });
-
-      const runReveal = () => {
-        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-        tl.to(headings, { opacity: 1, x: 0, stagger: 0.08, duration: 0.45 }, 0)
-          .to(cards,    { opacity: 1, y: 0, scale: 1, stagger: 0.05, duration: 0.5 }, 0.12);
-      };
-
-      observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((e) => {
-            if (!e.isIntersecting) return;
-            runReveal();
-            if (observer) observer.disconnect();
-            if (safety !== null) {
-              window.clearTimeout(safety);
-              safety = null;
-            }
-          });
-        },
-        { threshold: 0.15 },
-      );
-      observer.observe(docs);
-
-      // Safety net: if IO never fires (e.g., already in view on load), run after 1.2 s
-      safety = window.setTimeout(() => {
-        const rect = docs.getBoundingClientRect();
-        if (rect.top < window.innerHeight * 0.9 && rect.bottom > 0) {
-          runReveal();
-          if (observer) observer.disconnect();
-          safety = null;
-        }
-      }, 1200);
-    }, docs);
-
-    return () => {
-      if (observer) observer.disconnect();
-      if (safety !== null) window.clearTimeout(safety);
-      ctx.revert();
-    };
-  }, []);
 
   // ── Modal open/close + GSAP transitions ────────────────────
   const reducedMotion =
@@ -445,36 +353,7 @@ export default function HomePage() {
       <SystemArchitecture3D />
 
       {/* 4. Documentation */}
-      <section className="w-full max-w-4xl" id="docs">
-        <div className="text-center mb-7">
-          <p className="text-xs uppercase tracking-[0.18em] text-purple font-semibold mb-1.5">
-            Documentation
-          </p>
-          <h2 className="text-xl md:text-2xl tracking-tight">
-            Everything you need to run RepoPulse
-          </h2>
-        </div>
-        <div className="flex flex-col gap-8">
-          {DOCS.map(({ category, items }) => (
-            <div key={category}>
-              <h3
-                data-doc-heading
-                className="text-xs uppercase tracking-[0.16em] text-muted font-semibold mb-3 pb-2 border-b border-border"
-              >
-                {category}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {items.map(({ title, body }) => (
-                  <div key={title} className="feature-card" data-doc-card>
-                    <p className="feature-title font-boogaloo text-base mb-1">{title}</p>
-                    <p className="feature-desc text-xs leading-relaxed">{body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <DocsSection />
 
       {/* 5. Usage meter */}
       {usage && (
