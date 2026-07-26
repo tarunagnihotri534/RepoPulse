@@ -350,24 +350,13 @@ export default function DocsSection() {
                   color: isActive ? '#ffffff' : '#8b949e',
                 }}
               >
-                <span
-                  style={{
-                    fontSize: '1.1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                  aria-hidden="true"
-                >
-                  {entry.icon}
-                </span>
                 <h3 style={{
-                  fontFamily: 'var(--font-boogaloo)',
+                  fontFamily: 'var(--font-changa)',
                   fontSize: '1.05rem',
+                  fontWeight: 'normal',
                   color: 'inherit',
                   margin: 0,
-                  letterSpacing: '0.01em',
+                  letterSpacing: '0.03em',
                 }}>
                   {entry.title}
                 </h3>
