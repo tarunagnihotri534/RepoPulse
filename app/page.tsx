@@ -49,7 +49,10 @@ export default function HomePage() {
 
   useEffect(() => {
     fetch('/api/usage')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to load usage');
+        return r.json();
+      })
       .then((d: UsageData) => setUsage(d))
       .catch(() => {});
   }, []);
@@ -366,7 +369,7 @@ export default function HomePage() {
       <DocsSection />
 
       {/* 5. Usage meter */}
-      {usage && (
+      {usage && typeof usage.count === 'number' && (
         <section
           className="w-full max-w-xl"
           aria-label="Monthly usage"
