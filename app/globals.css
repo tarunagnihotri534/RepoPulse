@@ -15,9 +15,9 @@
 
 /* ── 1. Fonts ───────────────────────────────────────────────────────── */
 @font-face {
-  font-family: 'Boogaloo';
-  src: local('Boogaloo'),
-       url('/Boogaloo-Regular.ttf') format('truetype');
+  font-family: 'Questrial';
+  src: local('Questrial Regular'), local('Questrial-Regular'),
+       url('/Questrial-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -36,7 +36,7 @@
   --success:      #3fb950;
   --warning:      #d29922;
   --danger:       #f85149;
-  --font-boogaloo: 'Boogaloo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-boogaloo: 'Questrial', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono:    SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
@@ -82,7 +82,13 @@ h1, h2, h3, h4, h5, h6,
   font-family: var(--font-boogaloo);
   font-weight: 400;
   letter-spacing: 0.01em;
+  text-transform: none;
   margin: 0;
+}
+
+/* Questrial is a clean geometric sans — fine-tune for tiny sizes */
+.font-boogaloo:not(h1):not(h2):not(h3):not(.heading-display) {
+  letter-spacing: 0.005em;
 }
 
 code, pre, kbd, samp, .font-mono {
@@ -857,6 +863,47 @@ code, pre, kbd, samp, .font-mono {
     font-size: 0.875rem;
     color: var(--text-muted);
     line-height: 1.6;
+  }
+
+  /* Documentation section: higher contrast vs hero feature cards */
+  #docs h3[data-doc-heading] {
+    color: #e6edf3 !important;
+    border-bottom-color: #484f58 !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.18em !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+  #docs [data-doc-card] {
+    background-color: #161b22 !important;
+    border-color: #3b434c !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.04) inset,
+      0 10px 30px -20px rgba(0, 0, 0, 0.9),
+      0 0 0 1px rgba(255, 255, 255, 0.015);
+    /* Force full visibility even if scroll-reveal GSAP is delayed */
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  #docs [data-doc-card]:hover {
+    border-color: rgba(188, 140, 255, 0.55) !important;
+    background-color: #1b2130 !important;
+    transform: translateY(-2px) !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.05) inset,
+      0 16px 42px -22px rgba(163, 113, 247, 0.55),
+      0 0 0 1px rgba(188, 140, 255, 0.18);
+  }
+  #docs [data-doc-card] .feature-title {
+    color: #f0f3f7 !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 0.5rem !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  }
+  #docs [data-doc-card] .feature-desc {
+    color: #b6bfc9 !important;
+    font-size: 0.85rem !important;
+    line-height: 1.65 !important;
   }
 
   /* Usage meter bar */
