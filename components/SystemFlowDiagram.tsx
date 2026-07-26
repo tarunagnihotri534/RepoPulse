@@ -1,503 +1,551 @@
 'use client';
 
 /**
- * SystemFlowDiagram
- * ─────────────────
- * Animated 3D/pseudo-3D system-design explainer for RepoPulse.
- * Nodes revealed step-by-step on scroll via GSAP ScrollTrigger.
- * Animated particles travel along connector paths between steps.
- * Branch state: cache HIT vs MISS highlighted separately.
- * "Replay" button resets + replays the whole animation.
+ * SystemFlowDiagram — Scroll-pinned pipeline walkthrough
+ * ───────────────────────────────────────────────────────
+ * The section pins itself while the user scrolls.
+ * Each scroll step advances exactly one pipeline node:
+ *   • Node card slides + fades in from below (CSS 3D translateZ depth)
+ *   • SVG connector path draws itself with strokeDashoffset
+ *   • A glowing particle travels along the connector to the next node
+ *   • Left panel updates with the step description
  *
- * Uses only:
- *  • GSAP + ScrollTrigger for animation
- *  • CSS 3D transforms for depth (translateZ, rotateX/Y, perspective)
- *  • Tailwind CSS for layout / spacing only
- *  • NO Three.js, NO Framer Motion, NO other animation library
+ * Scroll speed = 9 steps × 120vh scroll distance = ~1080vh total height.
+ * The sticky wrapper gives the user full control — scroll slowly = slow anim.
+ *
+ * GSAP ScrollTrigger scrub:1 ties timeline progress directly to scroll.
+ * No autoplay, no timeouts. Pure scroll → animation mapping.
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-gsap.registerPlugin(ScrollTrigger);
-
-// ─── Step definitions ────────────────────────────────────────────────────────
-
-type BranchType = 'main' | 'hit' | 'miss';
-
-interface Step {
-  id: string;
-  label: string;
-  sub: string;
-  icon: string;
-  branch: BranchType;
-  col: number;   // 0-indexed column in the 2-column layout
-  row: number;   // 0-indexed row
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
 }
 
-const STEPS: Step[] = [
-  { id: 'browser',  label: 'User Browser',         sub: 'React form · owner/repo submitted',         icon: '🖥️',  branch: 'main', col: 0, row: 0 },
-  { id: 'api',      label: 'Next.js API Route',     sub: 'POST /api/analyze · validates input',       icon: '⚡',  branch: 'main', col: 1, row: 0 },
-  { id: 'cache',    label: 'Cache / DB Lookup',     sub: 'SQLite · checks 6-hour TTL',                icon: '🗄️',  branch: 'main', col: 0, row: 1 },
-  { id: 'hit',      label: 'Cache Hit',             sub: 'Returns cached snapshot instantly',         icon: '✅',  branch: 'hit',  col: 1, row: 1 },
-  { id: 'github',   label: 'GitHub GraphQL API',    sub: 'Fetches issues · PRs · contributors',       icon: '🐙',  branch: 'miss', col: 0, row: 2 },
-  { id: 'metrics',  label: 'Metrics Engine',        sub: 'Computes health score · deltas · triage',   icon: '🔬',  branch: 'miss', col: 1, row: 2 },
-  { id: 'write',    label: 'Cache Write',           sub: 'Stores snapshot in SQLite',                 icon: '💾',  branch: 'miss', col: 0, row: 3 },
-  { id: 'cap',      label: 'Usage Cap Tracker',     sub: 'Increments monthly counter · enforces 50',  icon: '📊',  branch: 'miss', col: 1, row: 3 },
-  { id: 'dashboard',label: 'Dashboard',            sub: 'React renders health data to visitor',      icon: '📈',  branch: 'main', col: 0, row: 4 },
+// ─── Pipeline steps ───────────────────────────────────────────────────────────
+
+const STEPS = [
+  {
+    id: 'browser',
+    label: 'User Browser',
+    sub: 'POST /api/analyze',
+    icon: '🖥️',
+    color: '#58a6ff',
+    detail: 'The visitor types an owner/repo into the React form and hits Analyse. The form validates the input client-side then fires a POST request to the Next.js API route.',
+    code: 'fetch("/api/analyze", {\n  method: "POST",\n  body: JSON.stringify({ owner, repo })\n})',
+  },
+  {
+    id: 'api',
+    label: 'Next.js API Route',
+    sub: 'Validates · checks cache',
+    icon: '⚡',
+    color: '#bc8cff',
+    detail: 'The API route validates owner/repo names against GitHub naming rules, then checks the SQLite cache for a fresh result before doing anything expensive.',
+    code: '// app/api/analyze/route.ts\nconst cached = await getCached(owner, repo);\nif (cached?.fresh) return cached.snapshot;',
+  },
+  {
+    id: 'cap',
+    label: 'Usage Cap Check',
+    sub: '50 lookups / month global',
+    icon: '🔒',
+    color: '#f0883e',
+    detail: 'Before hitting the GitHub API, the server checks the global monthly counter. If 50 live lookups have already been made this month, it returns 429. Cache hits bypass this check entirely.',
+    code: 'const count = await getMonthlyCount();\nif (count >= MONTHLY_CAP) {\n  return 429; // limit reached\n}',
+  },
+  {
+    id: 'github',
+    label: 'GitHub GraphQL API',
+    sub: 'Issues · PRs · Contributors',
+    icon: '🐙',
+    color: '#3fb950',
+    detail: 'Four parallel GraphQL queries fetch repo stats, issues (paginated up to 500), pull requests (paginated up to 500), and commit history for contributors — all in one Promise.all.',
+    code: 'const [stats, issues, prs, contribs]\n  = await Promise.all([\n    client.fetchRepoStats(owner, repo),\n    client.fetchIssues(owner, repo),\n    client.fetchPullRequests(owner, repo),\n    client.fetchContributors(owner, repo),\n  ]);',
+  },
+  {
+    id: 'metrics',
+    label: 'Metrics Engine',
+    sub: 'Pure functions · zero side effects',
+    icon: '🔬',
+    color: '#58a6ff',
+    detail: 'Five stateless compute functions run on the raw GitHub data: issue response times, PR review latency, contributor growth, triage health, and the composite 0–100 health score with letter grade.',
+    code: 'const issueMetrics  = computeIssueMetrics(issues);\nconst prMetrics     = computePRMetrics(prs);\nconst contribMetrics= computeContributorMetrics(c);\nconst health        = computeHealthScore(...);',
+  },
+  {
+    id: 'write',
+    label: 'Cache Write',
+    sub: 'SQLite · 6-hour TTL',
+    icon: '💾',
+    color: '#d29922',
+    detail: 'The full DailySnapshot (including raw issue/PR/contributor lists) is serialised to JSON and upserted into SQLite via Prisma. The cachedAt timestamp is stored as a Unix ms BigInt.',
+    code: 'await prisma.repoCache.upsert({\n  where: { owner_repo: { owner, repo } },\n  update: { snapshotJson, cachedAt },\n  create: { owner, repo, snapshotJson, cachedAt },\n});',
+  },
+  {
+    id: 'counter',
+    label: 'Counter Increment',
+    sub: 'usage table · YYYY-MM key',
+    icon: '📊',
+    color: '#f85149',
+    detail: 'The global monthly counter is atomically incremented via a Prisma upsert. The key is the current YYYY-MM string. This runs in parallel with the cache write.',
+    code: 'await prisma.usage.upsert({\n  where: { month: currentMonth() },\n  update: { count: { increment: 1 } },\n  create: { month, count: 1 },\n});',
+  },
+  {
+    id: 'response',
+    label: 'API Response',
+    sub: '{ snapshot, cachedAt, fromCache }',
+    icon: '📦',
+    color: '#bc8cff',
+    detail: 'The API returns a JSON payload containing the full snapshot, the cache timestamp, and a fromCache boolean. The dashboard uses fromCache to show "Fresh fetch" vs "Cached" indicator.',
+    code: 'return NextResponse.json({\n  snapshot,\n  cachedAt: new Date().toISOString(),\n  fromCache: false,\n});',
+  },
+  {
+    id: 'dashboard',
+    label: 'Dashboard Renders',
+    sub: 'React · Tailwind · Chart.js',
+    icon: '📈',
+    color: '#3fb950',
+    detail: 'The client receives the snapshot and renders the tabbed dashboard: Overview, Issues, PRs, Contributors, and Trends with react-chartjs-2 charts. All rendering happens in the browser.',
+    code: 'setSnapshot(data.snapshot);\n// Tabs: Overview · Issues · PRs\n//       Contributors · Trends\n// Charts: health, stars, issues, radar',
+  },
+] as const;
+
+type StepId = typeof STEPS[number]['id'];
+
+// Each step has one outgoing connector (except last)
+// [fromIndex, toIndex, label, isCachePath]
+const CONNECTORS: [number, number, string, boolean][] = [
+  [0, 1, 'POST request',       false],
+  [1, 2, 'cache miss →',       false],
+  [2, 3, 'under cap →',        false],
+  [3, 4, 'raw data',           false],
+  [4, 5, 'snapshot',           false],
+  [5, 6, 'parallel write',     false],
+  [6, 7, 'returns',            false],
+  [7, 8, 'JSON response',      false],
 ];
 
-// Edges: [from id, to id, label, branch]
-type EdgeDef = [string, string, string, BranchType];
-const EDGES: EdgeDef[] = [
-  ['browser',  'api',      'submits',    'main'],
-  ['api',      'cache',    'checks',     'main'],
-  ['cache',    'hit',      'HIT →',      'hit'],
-  ['hit',      'dashboard','skips ahead','hit'],
-  ['cache',    'github',   'MISS →',     'miss'],
-  ['github',   'metrics',  'raw data',   'miss'],
-  ['metrics',  'write',    'snapshot',   'miss'],
-  ['write',    'cap',      'logs',       'miss'],
-  ['cap',      'dashboard','returns',    'miss'],
+// Pixel positions for each node in the right-panel canvas (640×520)
+// Laid out as a flowing S-curve pipeline
+const NODE_POS: [number, number][] = [
+  [100, 50],   // 0 browser
+  [400, 50],   // 1 api
+  [400, 150],  // 2 cap
+  [400, 260],  // 3 github
+  [400, 370],  // 4 metrics
+  [250, 450],  // 5 write
+  [100, 370],  // 6 counter
+  [100, 260],  // 7 response
+  [250, 160],  // 8 dashboard
 ];
 
-const BRANCH_COLORS: Record<BranchType, string> = {
-  main: '#58a6ff',
-  hit:  '#3fb950',
-  miss: '#d29922',
-};
-
-const BRANCH_BG: Record<BranchType, string> = {
-  main: 'rgba(88,166,255,0.07)',
-  hit:  'rgba(63,185,80,0.07)',
-  miss: 'rgba(210,153,34,0.07)',
-};
-
-const BRANCH_BORDER: Record<BranchType, string> = {
-  main: 'rgba(88,166,255,0.30)',
-  hit:  'rgba(63,185,80,0.30)',
-  miss: 'rgba(210,153,34,0.30)',
-};
-
-// ─── Node card ───────────────────────────────────────────────────────────────
-
-interface NodeCardProps {
-  step: Step;
-  index: number;
+// ─── Utility: cubic bezier path between two points ────────────────────────────
+function cubicPath(x1: number, y1: number, x2: number, y2: number): string {
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const dx = Math.abs(x2 - x1) * 0.5;
+  const dy = Math.abs(y2 - y1) * 0.5;
+  const curve = Math.max(dx, dy, 30);
+  // Use a smooth cubic bezier
+  return `M ${x1} ${y1} C ${x1} ${y1 + curve * 0.6}, ${x2} ${y2 - curve * 0.6}, ${x2} ${y2}`;
 }
 
-function NodeCard({ step, index }: NodeCardProps) {
-  const color  = BRANCH_COLORS[step.branch];
-  const bg     = BRANCH_BG[step.branch];
-  const border = BRANCH_BORDER[step.branch];
-  const delay  = index * 0.13;
-
-  return (
-    <div
-      data-flow-node={step.id}
-      style={{
-        opacity: 0,
-        transform: 'perspective(600px) translateZ(-32px) translateY(16px)',
-        transition: `border-color 200ms ease-out, box-shadow 200ms ease-out`,
-        willChange: 'transform, opacity',
-        background: bg,
-        border: `1px solid ${border}`,
-        borderRadius: 12,
-        padding: '1rem 1.25rem',
-        position: 'relative',
-        overflow: 'hidden',
-        '--node-delay': `${delay}s`,
-      } as React.CSSProperties}
-      className="flow-node group cursor-default select-none"
-    >
-      {/* Glow layer */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          borderRadius: 12,
-          opacity: 0,
-          background: `radial-gradient(ellipse 70% 60% at 50% 0%, ${color}22, transparent 70%)`,
-          transition: 'opacity 300ms ease-out',
-          pointerEvents: 'none',
-        }}
-        className="node-glow"
-      />
-
-      {/* Step index badge */}
-      <div style={{
-        position: 'absolute',
-        top: 8,
-        right: 10,
-        fontSize: '0.6rem',
-        fontFamily: 'var(--font-mono)',
-        color: color,
-        opacity: 0.7,
-        letterSpacing: '0.06em',
-      }}>
-        {String(index + 1).padStart(2, '0')}
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-        <span style={{ fontSize: '1.6rem', lineHeight: 1, flexShrink: 0 }} aria-hidden="true">
-          {step.icon}
-        </span>
-        <div>
-          <div style={{
-            fontFamily: 'var(--font-boogaloo)',
-            fontSize: '1.05rem',
-            color: '#eceef1',
-            lineHeight: 1.2,
-            marginBottom: 3,
-          }}>
-            {step.label}
-          </div>
-          <div style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
-            lineHeight: 1.5,
-            fontFamily: 'var(--font-mono)',
-          }}>
-            {step.sub}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom color stripe */}
-      <div style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 2,
-        background: color,
-        opacity: 0.55,
-        borderRadius: '0 0 12px 12px',
-      }} />
-    </div>
-  );
-}
-
-// ─── Main component ──────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SystemFlowDiagram() {
-  const sectionRef  = useRef<HTMLDivElement>(null);
+  const wrapperRef  = useRef<HTMLDivElement>(null);  // scroll height container
+  const stickyRef   = useRef<HTMLDivElement>(null);  // pinned viewport
   const svgRef      = useRef<SVGSVGElement>(null);
-  const particleRef = useRef<HTMLDivElement>(null);
-  const tlRef       = useRef<gsap.core.Timeline | null>(null);
-  const [branchMode, setBranchMode] = useState<'hit' | 'miss'>('miss');
-  const playedRef = useRef(false);
-
-  // ── Build SVG paths for edges ─────────────────────────────────────────────
-  // We render paths purely through CSS/SVG — positions are set via data attributes
-  // that we read after layout in useEffect.
-
-  const buildTimeline = useCallback(() => {
-    const root = sectionRef.current;
-    if (!root) return;
-
-    // Kill previous
-    tlRef.current?.kill();
-    ScrollTrigger.getAll().forEach((st) => {
-      if (st.vars.id === 'flow-diagram') st.kill();
-    });
-
-    const reduced =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    const nodes = gsap.utils.toArray<HTMLElement>('[data-flow-node]', root);
-    const pathEls = gsap.utils.toArray<SVGPathElement>('[data-flow-path]', root);
-    const particles = gsap.utils.toArray<HTMLElement>('[data-particle]', root);
-    const branchLabels = gsap.utils.toArray<HTMLElement>('[data-branch-label]', root);
-    const legendHit  = root.querySelector('[data-legend-hit]')  as HTMLElement | null;
-    const legendMiss = root.querySelector('[data-legend-miss]') as HTMLElement | null;
-
-    if (reduced) {
-      nodes.forEach((n) => gsap.set(n, { opacity: 1, transform: 'perspective(600px) translateZ(0) translateY(0)' }));
-      pathEls.forEach((p) => gsap.set(p, { strokeDashoffset: 0, opacity: 1 }));
-      return;
-    }
-
-    // Reset states
-    nodes.forEach((n) => gsap.set(n, { opacity: 0, transform: 'perspective(600px) translateZ(-32px) translateY(16px)' }));
-    pathEls.forEach((p) => {
-      const len = p.getTotalLength?.() ?? 80;
-      gsap.set(p, { strokeDasharray: len, strokeDashoffset: len, opacity: 0 });
-    });
-    particles.forEach((p) => gsap.set(p, { opacity: 0 }));
-    branchLabels.forEach((l) => gsap.set(l, { opacity: 0, y: 6 }));
-
-    const tl = gsap.timeline({
-      paused: true,
-      defaults: { ease: 'power3.out' },
-    });
-
-    tlRef.current = tl;
-
-    // Reveal nodes one by one
-    nodes.forEach((node, i) => {
-      tl.to(node, {
-        opacity: 1,
-        transform: 'perspective(600px) translateZ(0px) translateY(0px)',
-        duration: 0.55,
-        ease: 'back.out(1.2)',
-      }, i * 0.18);
-    });
-
-    // Draw edges after nodes appear
-    pathEls.forEach((path, i) => {
-      tl.to(path, {
-        strokeDashoffset: 0,
-        opacity: 1,
-        duration: 0.7,
-        ease: 'power2.inOut',
-      }, 0.5 + i * 0.14);
-    });
-
-    // Branch labels
-    branchLabels.forEach((label, i) => {
-      tl.to(label, { opacity: 1, y: 0, duration: 0.35 }, 1.2 + i * 0.12);
-    });
-
-    // Particle travel along first path (repeating)
-    const firstPath = pathEls[0];
-    if (firstPath && particles[0]) {
-      tl.to(particles[0], { opacity: 1, duration: 0.2 }, 0.6);
-      tl.to(particles[0], {
-        motionPath: { path: firstPath, align: firstPath, alignOrigin: [0.5, 0.5] },
-        duration: 1.8,
-        ease: 'none',
-        repeat: -1,
-        delay: 0.3,
-      } as gsap.TweenVars, 0.6);
-    }
-
-    if (!reduced) {
-      ScrollTrigger.create({
-        id: 'flow-diagram',
-        trigger: root,
-        start: 'top 78%',
-        once: true,
-        onEnter: () => {
-          if (!playedRef.current) {
-            playedRef.current = true;
-            tl.play();
-          }
-        },
-      });
-    }
-  }, []);
+  const [activeStep, setActiveStep] = useState(0);
+  const [activeConnector, setActiveConnector] = useState(-1);
+  const stepsRevealedRef = useRef<boolean[]>(Array(STEPS.length).fill(false));
 
   useEffect(() => {
-    buildTimeline();
-    return () => {
-      tlRef.current?.kill();
-      ScrollTrigger.getAll().forEach((st) => {
-        if (st.vars.id === 'flow-diagram') st.kill();
-      });
-    };
-  }, [buildTimeline]);
+    const wrapper = wrapperRef.current;
+    const sticky  = stickyRef.current;
+    const svg     = svgRef.current;
+    if (!wrapper || !sticky || !svg) return;
 
-  const handleReplay = () => {
-    playedRef.current = false;
-    const root = sectionRef.current;
-    if (!root) return;
-    const nodes = gsap.utils.toArray<HTMLElement>('[data-flow-node]', root);
-    const pathEls = gsap.utils.toArray<SVGPathElement>('[data-flow-path]', root);
-    nodes.forEach((n) => gsap.set(n, { opacity: 0, transform: 'perspective(600px) translateZ(-32px) translateY(16px)' }));
-    pathEls.forEach((p) => {
-      const len = p.getTotalLength?.() ?? 80;
-      gsap.set(p, { strokeDashoffset: len, opacity: 0 });
+    // Each step gets 100vh of scroll room, plus 60vh padding at end
+    const scrollHeight = STEPS.length * 100 + 60;
+    wrapper.style.height = `${scrollHeight}vh`;
+
+    // ── Initialise all node elements ────────────────────────────────────────
+    const nodeEls = Array.from(
+      svg.querySelectorAll<SVGGElement>('[data-node-idx]'),
+    );
+    const pathEls = Array.from(
+      svg.querySelectorAll<SVGPathElement>('[data-connector-idx]'),
+    );
+    const particleEls = Array.from(
+      svg.querySelectorAll<SVGCircleElement>('[data-particle-idx]'),
+    );
+    const labelEls = Array.from(
+      svg.querySelectorAll<SVGTextElement>('[data-label-idx]'),
+    );
+
+    // Reset all to invisible
+    nodeEls.forEach((n) => {
+      gsap.set(n, { opacity: 0, scale: 0.6, transformOrigin: '50% 50%' });
     });
-    tlRef.current?.restart();
-    playedRef.current = true;
-  };
+    pathEls.forEach((p) => {
+      const len = p.getTotalLength ? p.getTotalLength() : 100;
+      gsap.set(p, { strokeDasharray: len, strokeDashoffset: len, opacity: 0 });
+    });
+    particleEls.forEach((c) => gsap.set(c, { opacity: 0 }));
+    labelEls.forEach((l) => gsap.set(l, { opacity: 0 }));
 
-  // ── Filter nodes by branch ────────────────────────────────────────────────
-  const visibleSteps = STEPS.filter(
-    (s) => s.branch === 'main' || s.branch === branchMode,
-  );
+    // ── Main scroll-scrubbed timeline ───────────────────────────────────────
+    // One "beat" per step. Each beat = reveal node + draw its incoming connector.
+    const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+    const beatDur = 1 / STEPS.length; // fraction of total timeline per step
+
+    STEPS.forEach((_, i) => {
+      const pos = `${i * beatDur}`;
+
+      // 1. Reveal node
+      const nodeEl = nodeEls[i];
+      if (nodeEl) {
+        tl.to(nodeEl, {
+          opacity: 1,
+          scale: 1,
+          duration: beatDur * 0.5,
+          ease: 'back.out(1.5)',
+          onStart: () => setActiveStep(i),
+        }, pos);
+      }
+
+      // 2. Draw connector from previous node
+      if (i > 0) {
+        const pathEl = pathEls[i - 1];
+        const particleEl = particleEls[i - 1];
+        const labelEl = labelEls[i - 1];
+
+        if (pathEl) {
+          const len = pathEl.getTotalLength ? pathEl.getTotalLength() : 100;
+          gsap.set(pathEl, { strokeDasharray: len, strokeDashoffset: len });
+
+          tl.to(pathEl, {
+            strokeDashoffset: 0,
+            opacity: 1,
+            duration: beatDur * 0.6,
+            ease: 'power2.inOut',
+            onStart: () => setActiveConnector(i - 1),
+          }, `${i * beatDur - beatDur * 0.15}`);
+        }
+
+        if (particleEl) {
+          // Particle travels along the path
+          const path = pathEls[i - 1];
+          tl.fromTo(particleEl,
+            { opacity: 0, attr: { cx: NODE_POS[i - 1][0], cy: NODE_POS[i - 1][1] } },
+            {
+              opacity: 1,
+              motionPath: path ? { path, align: path, alignOrigin: [0.5, 0.5], autoRotate: false } : {},
+              duration: beatDur * 0.55,
+              ease: 'power1.inOut',
+              onComplete: () => { gsap.to(particleEl, { opacity: 0, duration: 0.2 }); },
+            } as gsap.TweenVars,
+            `${i * beatDur - beatDur * 0.1}`,
+          );
+        }
+
+        if (labelEl) {
+          tl.to(labelEl, {
+            opacity: 0.7,
+            duration: beatDur * 0.3,
+          }, `${i * beatDur}`);
+        }
+      }
+    });
+
+    // ── Bind timeline to scroll ─────────────────────────────────────────────
+    const st = ScrollTrigger.create({
+      trigger: wrapper,
+      start:   'top top',
+      end:     'bottom bottom',
+      scrub:   1.2,           // 1.2s lag = very smooth, responsive to scroll speed
+      pin:     sticky,
+      pinSpacing: false,
+      animation: tl,
+      onUpdate: (self) => {
+        // Update which step is active based on scroll progress
+        const idx = Math.min(
+          STEPS.length - 1,
+          Math.floor(self.progress * STEPS.length),
+        );
+        setActiveStep(idx);
+        stepsRevealedRef.current[idx] = true;
+      },
+    });
+
+    return () => {
+      tl.kill();
+      st.kill();
+    };
+  }, []);
+
+  const step = STEPS[activeStep];
 
   return (
-    <section
-      ref={sectionRef}
-      id="system-flow"
-      className="w-full max-w-5xl"
-      aria-label="System data flow diagram"
-    >
-      {/* Header */}
-      <div className="text-center mb-8">
-        <p className="text-xs uppercase tracking-[0.18em] text-purple font-semibold mb-1.5">
-          System Architecture
-        </p>
-        <h2 className="text-xl md:text-2xl tracking-tight mb-4">
-          How RepoPulse processes a request
-        </h2>
+    // Outer wrapper — tall so scroll has room
+    <div ref={wrapperRef} className="w-full relative" id="system-flow">
 
-        {/* Branch toggle + Replay */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <div className="inline-flex rounded-lg border border-border overflow-hidden">
-            <button
-              onClick={() => setBranchMode('miss')}
-              className={`px-4 py-1.5 text-xs font-semibold transition ${
-                branchMode === 'miss'
-                  ? 'bg-warning/20 text-warning border-warning/30'
-                  : 'text-muted hover:text-[#c9d1d9]'
-              }`}
-              aria-pressed={branchMode === 'miss'}
+      {/* Sticky viewport — pins while wrapper scrolls past */}
+      <div
+        ref={stickyRef}
+        style={{ height: '100vh', top: 0 }}
+        className="sticky w-full flex flex-col"
+      >
+        {/* Header */}
+        <div className="text-center pt-8 pb-4 shrink-0">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-purple font-semibold mb-1">
+            System Architecture
+          </p>
+          <h2 className="text-lg md:text-xl font-semibold tracking-tight text-[#eceef1]">
+            How RepoPulse processes a request
+          </h2>
+          <p className="text-xs text-muted mt-1">Scroll slowly to walk through the pipeline ↓</p>
+        </div>
+
+        {/* Two-panel layout */}
+        <div className="flex flex-1 min-h-0 gap-0 md:gap-4 px-4 md:px-8 pb-6 max-w-6xl mx-auto w-full">
+
+          {/* LEFT — Step explanation */}
+          <div className="w-full md:w-[340px] shrink-0 flex flex-col justify-center gap-4">
+
+            {/* Step counter */}
+            <div className="flex items-center gap-2">
+              <span
+                className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full border"
+                style={{ color: step.color, borderColor: step.color + '44', background: step.color + '11' }}
+              >
+                STEP {activeStep + 1} / {STEPS.length}
+              </span>
+              {activeStep === STEPS.length - 1 && (
+                <span className="text-xs text-success font-semibold animate-pulse">Complete ✓</span>
+              )}
+            </div>
+
+            {/* Step title */}
+            <div
+              key={step.id}
+              style={{
+                borderLeft: `3px solid ${step.color}`,
+                paddingLeft: '1rem',
+                transition: 'all 0.4s ease',
+              }}
             >
-              Cache Miss (full flow)
-            </button>
-            <button
-              onClick={() => setBranchMode('hit')}
-              className={`px-4 py-1.5 text-xs font-semibold transition border-l border-border ${
-                branchMode === 'hit'
-                  ? 'bg-success/20 text-success'
-                  : 'text-muted hover:text-[#c9d1d9]'
-              }`}
-              aria-pressed={branchMode === 'hit'}
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ fontSize: '1.5rem' }} aria-hidden="true">{step.icon}</span>
+                <h3 className="text-base font-semibold text-[#eceef1]">{step.label}</h3>
+              </div>
+              <p className="text-xs text-muted mb-1 font-mono">{step.sub}</p>
+              <p className="text-sm text-[#a0aab4] leading-relaxed">{step.detail}</p>
+            </div>
+
+            {/* Code snippet */}
+            <div
+              className="rounded-lg overflow-hidden border border-border"
+              style={{ background: '#0d1117' }}
             >
-              Cache Hit (fast path)
-            </button>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#f85149]/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#d29922]/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#3fb950]/70" />
+                <span className="ml-2 text-[10px] text-muted font-mono">RepoPulse</span>
+              </div>
+              <pre
+                className="text-[11px] font-mono leading-relaxed overflow-x-auto p-3"
+                style={{ color: step.color, margin: 0 }}
+              >
+                <code>{step.code}</code>
+              </pre>
+            </div>
+
+            {/* Step dots progress */}
+            <div className="flex items-center gap-1.5">
+              {STEPS.map((s, i) => (
+                <div
+                  key={s.id}
+                  style={{
+                    width: i === activeStep ? 20 : 6,
+                    height: 6,
+                    borderRadius: 999,
+                    background: i <= activeStep ? s.color : '#30363d',
+                    transition: 'all 0.35s ease',
+                  }}
+                />
+              ))}
+            </div>
           </div>
 
-          <button
-            onClick={handleReplay}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border text-muted hover:text-[#c9d1d9] hover:border-purple/40 transition"
-            aria-label="Replay animation"
-          >
-            <span aria-hidden="true">↺</span> Replay
-          </button>
-        </div>
-      </div>
+          {/* RIGHT — SVG pipeline diagram */}
+          <div className="flex-1 min-w-0 flex items-center justify-center relative">
+            <svg
+              ref={svgRef}
+              viewBox="0 0 500 500"
+              className="w-full h-full"
+              style={{ maxHeight: '72vh', overflow: 'visible' }}
+              aria-label="Pipeline flow diagram"
+            >
+              <defs>
+                {STEPS.map((s) => (
+                  <radialGradient key={s.id} id={`glow-${s.id}`} cx="50%" cy="50%" r="50%">
+                    <stop offset="0%"   stopColor={s.color} stopOpacity="0.35" />
+                    <stop offset="100%" stopColor={s.color} stopOpacity="0" />
+                  </radialGradient>
+                ))}
+                <filter id="node-glow">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <filter id="line-glow">
+                  <feGaussianBlur stdDeviation="2" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
 
-      {/* Flow diagram */}
-      <div
-        style={{
-          position: 'relative',
-          perspective: '1200px',
-        }}
-      >
-        {/* SVG connector layer — absolutely positioned behind nodes */}
-        <svg
-          ref={svgRef}
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            zIndex: 0,
-            overflow: 'visible',
-          }}
-        >
-          <defs>
-            {(['main', 'hit', 'miss'] as BranchType[]).map((b) => (
-              <marker
-                key={b}
-                id={`arrow-${b}`}
-                viewBox="0 0 10 10"
-                refX="9"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-              >
-                <path d="M 0 0 L 10 5 L 0 10 z" fill={BRANCH_COLORS[b]} opacity="0.8" />
-              </marker>
-            ))}
-          </defs>
-          {/* Paths drawn at runtime via JS — placeholder here */}
-          {EDGES.filter(([, , , branch]) => branch === 'main' || branch === branchMode).map(
-            ([from, , label, branch], i) => (
-              <g key={`${from}-${i}`}>
-                <path
-                  data-flow-path={`${from}-${i}`}
-                  data-edge-branch={branch}
-                  stroke={BRANCH_COLORS[branch as BranchType]}
-                  strokeWidth="1.5"
-                  fill="none"
-                  strokeLinecap="round"
-                  markerEnd={`url(#arrow-${branch})`}
-                  opacity="0"
-                  d="M 0 0 L 0 0" // updated by JS after layout
-                />
-                {label && (
-                  <text
-                    data-branch-label
-                    fontSize="9"
-                    fill={BRANCH_COLORS[branch as BranchType]}
-                    opacity="0"
-                    fontFamily="var(--font-mono)"
-                    letterSpacing="0.04em"
+              {/* ── Connector paths ─────────────────────────────────────── */}
+              {CONNECTORS.map(([from, to, label], ci) => {
+                const [x1, y1] = NODE_POS[from];
+                const [x2, y2] = NODE_POS[to];
+                const color = STEPS[from].color;
+                const d = cubicPath(x1, y1, x2, y2);
+                return (
+                  <g key={ci}>
+                    {/* Glow duplicate */}
+                    <path
+                      d={d}
+                      stroke={color}
+                      strokeWidth="4"
+                      fill="none"
+                      opacity="0.15"
+                      filter="url(#line-glow)"
+                    />
+                    {/* Main path — animated by GSAP */}
+                    <path
+                      data-connector-idx={ci}
+                      d={d}
+                      stroke={color}
+                      strokeWidth="1.5"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray="100"
+                      strokeDashoffset="100"
+                      opacity="0"
+                    />
+                    {/* Connector label */}
+                    <text
+                      data-label-idx={ci}
+                      x={(x1 + x2) / 2 + 6}
+                      y={(y1 + y2) / 2 - 5}
+                      fontSize="7.5"
+                      fill={color}
+                      opacity="0"
+                      fontFamily="monospace"
+                      letterSpacing="0.04em"
+                    >
+                      {label}
+                    </text>
+                    {/* Particle */}
+                    <circle
+                      data-particle-idx={ci}
+                      r="4"
+                      fill={color}
+                      opacity="0"
+                      filter="url(#node-glow)"
+                    />
+                  </g>
+                );
+              })}
+
+              {/* ── Node circles ────────────────────────────────────────── */}
+              {STEPS.map((s, i) => {
+                const [cx, cy] = NODE_POS[i];
+                const isActive = i === activeStep;
+                const isPast   = i < activeStep;
+                return (
+                  <g
+                    key={s.id}
+                    data-node-idx={i}
+                    style={{ transformOrigin: `${cx}px ${cy}px` }}
                   >
-                    {label}
-                  </text>
-                )}
-              </g>
-            ),
-          )}
-        </svg>
+                    {/* Glow halo */}
+                    <circle
+                      cx={cx} cy={cy} r={isActive ? 32 : 24}
+                      fill={`url(#glow-${s.id})`}
+                      opacity={isActive ? 0.9 : isPast ? 0.4 : 0.2}
+                    />
+                    {/* Outer ring */}
+                    <circle
+                      cx={cx} cy={cy} r="20"
+                      fill={isActive ? s.color + '22' : '#161b22'}
+                      stroke={s.color}
+                      strokeWidth={isActive ? 2 : 1}
+                      opacity={isActive ? 1 : isPast ? 0.7 : 0.5}
+                    />
+                    {/* Icon */}
+                    <text
+                      x={cx} y={cy + 5}
+                      textAnchor="middle"
+                      fontSize="14"
+                      dominantBaseline="auto"
+                    >
+                      {s.icon}
+                    </text>
+                    {/* Label below node */}
+                    <text
+                      x={cx}
+                      y={cy + 32}
+                      textAnchor="middle"
+                      fontSize="8"
+                      fill={isActive ? s.color : '#8b949e'}
+                      fontFamily="monospace"
+                      fontWeight={isActive ? 'bold' : 'normal'}
+                    >
+                      {s.label.split(' ').slice(0, 2).join(' ')}
+                    </text>
 
-        {/* Particle dot */}
-        <div ref={particleRef}>
-          <div
-            data-particle
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: BRANCH_COLORS.main,
-              boxShadow: `0 0 10px ${BRANCH_COLORS.main}`,
-              zIndex: 20,
-              pointerEvents: 'none',
-              opacity: 0,
-            }}
-          />
+                    {/* Active pulse ring */}
+                    {isActive && (
+                      <circle
+                        cx={cx} cy={cy} r="24"
+                        fill="none"
+                        stroke={s.color}
+                        strokeWidth="1"
+                        opacity="0.5"
+                      >
+                        <animate
+                          attributeName="r"
+                          values="20;32;20"
+                          dur="2s"
+                          repeatCount="indefinite"
+                        />
+                        <animate
+                          attributeName="opacity"
+                          values="0.5;0;0.5"
+                          dur="2s"
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
         </div>
 
-        {/* Node grid */}
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 10,
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '1rem',
-          }}
-        >
-          {visibleSteps.map((step, i) => (
-            <NodeCard key={step.id} step={step} index={i} />
-          ))}
-        </div>
+        {/* Scroll hint — fades out after first step */}
+        {activeStep === 0 && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none">
+            <span className="text-[10px] text-muted uppercase tracking-widest">Scroll</span>
+            <div className="w-px h-8 bg-gradient-to-b from-muted/60 to-transparent animate-pulse" />
+          </div>
+        )}
       </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-5 mt-6 text-xs text-muted">
-        {(['main', 'hit', 'miss'] as BranchType[]).map((b) => (
-          <span key={b} className="flex items-center gap-1.5">
-            <span
-              style={{
-                display: 'inline-block',
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                background: BRANCH_COLORS[b],
-                boxShadow: `0 0 6px ${BRANCH_COLORS[b]}`,
-              }}
-            />
-            <span style={{ color: BRANCH_COLORS[b], fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-              {b === 'main' ? 'Main path' : b === 'hit' ? 'Cache hit' : 'Cache miss'}
-            </span>
-          </span>
-        ))}
-      </div>
-    </section>
+    </div>
   );
 }
