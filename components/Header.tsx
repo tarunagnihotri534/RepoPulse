@@ -38,7 +38,7 @@ export default function Header() {
 
   return (
     <header className="nav-header sticky top-0 z-50 border-b border-border">
-      <div className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between relative">
+      <div className="mx-auto max-w-6xl px-4 md:px-8 h-14 flex items-center justify-between relative">
         {/* Logo */}
         <a href="/" className="nav-logo flex items-center gap-2 font-semibold text-text no-underline">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -52,7 +52,35 @@ export default function Header() {
         </a>
 
         {/* Navigation & Menu Button */}
-        <div className="flex items-center gap-3" ref={menuRef}>
+        <div className="flex items-center gap-4" ref={menuRef}>
+          {/* Horizontal links - visible on md and above */}
+          <nav className="hidden md:flex items-center gap-6 mr-2">
+            <button
+              onClick={() => handleNavClick('system-design')}
+              className="text-xs font-semibold text-muted hover:text-[#bc8cff] hover:opacity-100 transition-colors duration-150 bg-transparent border-none cursor-pointer focus:outline-none"
+            >
+              3D Architecture
+            </button>
+            <button
+              onClick={() => handleNavClick('how-it-works')}
+              className="text-xs font-semibold text-muted hover:text-[#bc8cff] hover:opacity-100 transition-colors duration-150 bg-transparent border-none cursor-pointer focus:outline-none"
+            >
+              Console Demo
+            </button>
+            <button
+              onClick={() => handleNavClick('features')}
+              className="text-xs font-semibold text-muted hover:text-[#bc8cff] hover:opacity-100 transition-colors duration-150 bg-transparent border-none cursor-pointer focus:outline-none"
+            >
+              Features
+            </button>
+            <button
+              onClick={() => handleNavClick('docs')}
+              className="text-xs font-semibold text-muted hover:text-[#bc8cff] hover:opacity-100 transition-colors duration-150 bg-transparent border-none cursor-pointer focus:outline-none"
+            >
+              Documentation
+            </button>
+          </nav>
+
           {/* GitHub link icon (keeps existing layout) */}
           <a
             href={REPO_URL}
@@ -66,10 +94,10 @@ export default function Header() {
             <img src="/github.png" alt="GitHub" />
           </a>
 
-          {/* Menu Button with 3 vertical sticks */}
+          {/* Menu Button with 3 vertical sticks - hidden on md and above */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center justify-center p-2 rounded-lg text-muted hover:text-white transition-colors duration-200 border border-transparent hover:border-[#30363d] focus:outline-none"
+            className="flex md:hidden items-center justify-center p-2 rounded-lg text-muted hover:text-white transition-colors duration-200 border border-transparent hover:border-[#30363d] focus:outline-none"
             aria-label="Toggle navigation menu"
             aria-expanded={isOpen}
             style={{ backgroundColor: isOpen ? 'rgba(48, 54, 61, 0.2)' : 'transparent' }}
