@@ -27,12 +27,12 @@ const FEATURES = [
 ];
 
 const PARTNERS = [
-  'GitHub',
-  'GraphQL',
-  'Next.js',
-  'SQLite',
-  'Prisma',
-  'Chart.js',
+  { name: 'GitHub',   slug: 'github' },
+  { name: 'GraphQL',  slug: 'graphql' },
+  { name: 'Next.js',  slug: 'nextdotjs' },
+  { name: 'SQLite',   slug: 'sqlite' },
+  { name: 'Prisma',   slug: 'prisma' },
+  { name: 'Chart.js', slug: 'chartdotjs' },
 ];
 
 export default function HomePage() {
@@ -335,8 +335,18 @@ export default function HomePage() {
             Works with
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-sm text-muted">
-            {PARTNERS.map((name) => (
-              <span key={name} data-partner className="font-medium tracking-wide">
+            {PARTNERS.map(({ name, slug }) => (
+              <span
+                key={name}
+                data-partner
+                className="group flex items-center gap-1.5 font-medium tracking-wide hover:text-[#eceef1] transition-colors duration-200 cursor-default"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://cdn.simpleicons.org/${slug}/ffffff`}
+                  alt=""
+                  className="h-4 w-4 object-contain opacity-55 group-hover:opacity-100 transition-opacity duration-200"
+                />
                 {name}
               </span>
             ))}
@@ -386,7 +396,7 @@ export default function HomePage() {
       )}
 
       {/* 6. Feature grid */}
-      <section className="w-full max-w-4xl">
+      <section id="features" className="w-full max-w-4xl">
         <div className="text-center mb-6">
           <p className="text-xs uppercase tracking-[0.18em] text-purple font-semibold mb-1.5">
             Features

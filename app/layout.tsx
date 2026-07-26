@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import FloatingBlocks from '@/components/FloatingBlocks';
 import FlickeringGrid from '@/components/FlickeringGrid';
+import Header from '@/components/Header';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -19,33 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <FlickeringGrid />
         <FloatingBlocks />
 
-        <header className="nav-header sticky top-0 z-50 border-b border-border">
-          <div className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between">
-            <a href="/" className="nav-logo flex items-center gap-2 font-semibold text-text no-underline">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/artificial-heart.png"
-                alt="RepoPulse Logo"
-                className="h-7 w-7 object-contain"
-                style={{ filter: 'drop-shadow(0 0 8px rgba(188, 140, 255, 0.55))' }}
-              />
-              <span className="font-boogaloo tracking-wide text-lg">RepoPulse</span>
-            </a>
-            <nav className="flex items-center gap-2">
-              <a
-                href={REPO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="github-icon-btn no-underline"
-                aria-label="View source on GitHub"
-                title="View RepoPulse on GitHub"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/github.png" alt="GitHub" />
-              </a>
-            </nav>
-          </div>
-        </header>
+        <Header />
 
         <main className="relative z-10 max-w-5xl mx-auto px-4 py-10">
           {children}
