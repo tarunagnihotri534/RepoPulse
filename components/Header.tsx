@@ -52,35 +52,7 @@ export default function Header() {
         </a>
 
         {/* Navigation & Menu Button */}
-        <div className="flex items-center gap-4" ref={menuRef}>
-          {/* Horizontal links - visible on md and above */}
-          <nav className="hidden md:flex items-center gap-6 mr-2">
-            <button
-              onClick={() => handleNavClick('system-design')}
-              className="text-xs font-semibold text-muted hover:text-[#bc8cff] hover:opacity-100 transition-colors duration-150 bg-transparent border-none cursor-pointer focus:outline-none"
-            >
-              3D Architecture
-            </button>
-            <button
-              onClick={() => handleNavClick('how-it-works')}
-              className="text-xs font-semibold text-muted hover:text-[#bc8cff] hover:opacity-100 transition-colors duration-150 bg-transparent border-none cursor-pointer focus:outline-none"
-            >
-              Console Demo
-            </button>
-            <button
-              onClick={() => handleNavClick('features')}
-              className="text-xs font-semibold text-muted hover:text-[#bc8cff] hover:opacity-100 transition-colors duration-150 bg-transparent border-none cursor-pointer focus:outline-none"
-            >
-              Features
-            </button>
-            <button
-              onClick={() => handleNavClick('docs')}
-              className="text-xs font-semibold text-muted hover:text-[#bc8cff] hover:opacity-100 transition-colors duration-150 bg-transparent border-none cursor-pointer focus:outline-none"
-            >
-              Documentation
-            </button>
-          </nav>
-
+        <div className="flex items-center gap-3" ref={menuRef}>
           {/* GitHub link icon (keeps existing layout) */}
           <a
             href={REPO_URL}
@@ -94,10 +66,10 @@ export default function Header() {
             <img src="/github.png" alt="GitHub" />
           </a>
 
-          {/* Menu Button with 3 vertical sticks - hidden on md and above */}
+          {/* Menu Button with 3 horizontal sticks */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="flex md:hidden items-center justify-center p-2 rounded-lg text-muted hover:text-white transition-colors duration-200 border border-transparent hover:border-[#30363d] focus:outline-none"
+            className="flex items-center justify-center p-2 rounded-lg text-muted hover:text-white transition-colors duration-200 border border-transparent hover:border-[#30363d] focus:outline-none"
             aria-label="Toggle navigation menu"
             aria-expanded={isOpen}
             style={{ backgroundColor: isOpen ? 'rgba(48, 54, 61, 0.2)' : 'transparent' }}
@@ -112,9 +84,9 @@ export default function Header() {
               strokeLinecap="round"
               aria-hidden="true"
             >
-              <line x1="6" y1="4" x2="6" y2="20" />
-              <line x1="12" y1="4" x2="12" y2="20" />
-              <line x1="18" y1="4" x2="18" y2="20" />
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
             </svg>
           </button>
 
