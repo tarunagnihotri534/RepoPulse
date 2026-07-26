@@ -52,7 +52,7 @@ function Terminal({ filename, lines }: TerminalProps) {
       {/* Title bar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0.5rem 0.875rem',
+        padding: '0.4rem 0.75rem',
         background: '#11161d',
         borderBottom: '1px solid #21262d',
       }}>
@@ -65,7 +65,11 @@ function Terminal({ filename, lines }: TerminalProps) {
         <span style={{ width: 42 }} />
       </div>
       {/* Code body */}
-      <div style={{ padding: '0.75rem 1rem', overflowX: 'auto' }}>
+      <div style={{
+        padding: '0.5rem 0.75rem',
+        height: '240px',
+        overflow: 'auto',
+      }}>
         {lines.map((line, i) => (
           <div key={i} style={{ color: colorMap[line.type] ?? colorMap.plain, whiteSpace: 'pre' }}>
             {line.text}
@@ -92,7 +96,7 @@ const ENTRIES: DocEntry[] = [
   {
     icon: '⚡',
     title: 'System Architecture',
-    desc: `RepoPulse is a Next.js App Router application. The browser submits a POST to /api/analyze. The API route checks a SQLite cache first — if a fresh result exists (< 6 hours old) it returns immediately. On a cache miss it calls the GitHub GraphQL API, runs all metric calculations, writes the result to SQLite, increments the global usage counter, and returns the snapshot. The React dashboard renders the result client-side.`,
+    desc: `RepoPulse is a Next.js App Router application. Requests to /api/analyze check the SQLite cache first. On a cache miss, the service queries the GitHub GraphQL API, calculates repository metrics, caches the result in SQLite, and increments the global usage cap before returning the client snapshot.`,
     terminal: {
       filename: 'app/api/analyze/route.ts',
       lines: [
@@ -121,7 +125,7 @@ const ENTRIES: DocEntry[] = [
   {
     icon: '🐙',
     title: 'GitHub GraphQL Client',
-    desc: `The aggregator fires four parallel GraphQL queries in one Promise.all — repo stats, issues (paginated, up to 500), pull requests (paginated, up to 500), and commit history for contributors. A MAX_PAGES = 5 guard keeps each run well under GitHub's 5,000 points/hour rate limit. A typical run costs ~100–300 points.`,
+    desc: `The aggregator fetches repository stats, issues, PRs, and contributor history in parallel using a single Promise.all. A MAX_PAGES = 5 query guard keeps the rate well under GitHub's 5,000 points/hour rate limit, costing around 100–300 points per run.`,
     terminal: {
       filename: 'lib/aggregator.ts',
       lines: [
@@ -145,7 +149,7 @@ const ENTRIES: DocEntry[] = [
   {
     icon: '🐛',
     title: 'Issue Response Metrics',
-    desc: `computeIssueMetrics walks every issue and measures: time to first timeline event (first response), time to close, whether it closed within 7 days, and whether it has gone stale (open with no update in 30+ days). All durations are computed in decimal hours using the hoursBetween utility. The median is computed over the full set — not a sample.`,
+    desc: `The issue metrics engine calculates the time to first response, time to close, 7-day closure rate, and stale status (no activity for 30+ days). All durations are calculated in decimal hours, computing the median over the entire repository database.`,
     terminal: {
       filename: 'lib/metrics/issues.ts',
       lines: [
@@ -175,7 +179,7 @@ const ENTRIES: DocEntry[] = [
   {
     icon: '❤️',
     title: 'Composite Health Score',
-    desc: `The health score is a 0–100 number built from four independent sub-scores (each out of 25): Response Time, PR Velocity, Triage Health, and Community Growth. Each dimension is scored on a linear decay curve — e.g. a median first-response under 4 hours scores full marks; over 168 hours (one week) scores zero. The final letter grade is A ≥ 85, B ≥ 70, C ≥ 55, D ≥ 40, F otherwise.`,
+    desc: `The health score (0–100) aggregates four sub-scores: Response Time, PR Velocity, Triage Health, and Community Growth. Each is scored on a linear decay curve (e.g. response under 4 hours gets full marks). Grades range from A (≥85) to F (<40).`,
     terminal: {
       filename: 'lib/metrics/health.ts',
       lines: [
@@ -199,7 +203,7 @@ const ENTRIES: DocEntry[] = [
   {
     icon: '🗄️',
     title: 'SQLite Cache & Usage Cap',
-    desc: `Results are stored in a SQLite database (via Prisma) in the repo_cache table — keyed by owner + repo, with the full DailySnapshot serialised as JSON and a Unix ms timestamp. A cache hit within 6 hours returns instantly and never touches GitHub or the usage counter. The usage table tracks a single row per YYYY-MM key, atomically incremented via Prisma upsert on every cache-miss lookup.`,
+    desc: `Snapshots are cached in SQLite for 6 hours, allowing immediate returns without querying GitHub. A monthly usage table tracks global API consumption, using Prisma upsert to atomically increment the counter on each cache miss.`,
     terminal: {
       filename: 'lib/db.ts',
       lines: [
@@ -226,7 +230,7 @@ const ENTRIES: DocEntry[] = [
   {
     icon: '🚀',
     title: 'Running RepoPulse locally',
-    desc: `Clone the repo, install dependencies, copy the env template and fill in your GitHub fine-grained PAT (Public Repositories, read-only). Run prisma db push to create tracker.db, then npm run dev. The app starts on localhost:3000 — enter any public repo owner and name to get an instant health report.`,
+    desc: `Clone the repository, install dependencies, and configure your GitHub PAT in .env.local. Run prisma db push to create the SQLite database locally, then launch the dev server. Enter any public repo on localhost:3000 to analyze it.`,
     terminal: {
       filename: 'terminal',
       lines: [
@@ -328,10 +332,10 @@ export default function DocsSection() {
       </div>
 
       {/* Interactive Layout container */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start mt-4">
         
         {/* Left Rail: Clickable Feature Blocks */}
-        <div className="flex flex-col gap-4 md:col-span-5">
+        <div className="flex flex-col gap-4 md:col-span-7">
           {ENTRIES.map((entry, i) => {
             const isActive = i === activeIndex;
             return (
@@ -396,7 +400,7 @@ export default function DocsSection() {
         </div>
 
         {/* Right side: Sticky Terminal-style code panel */}
-        <div data-doc-terminal className="md:col-span-7 md:sticky md:top-28 w-full">
+        <div data-doc-terminal className="md:col-span-5 md:sticky md:top-24 w-full">
           <div
             style={{
               opacity: fadeState === 'in' ? 1 : 0,
