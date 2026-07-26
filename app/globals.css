@@ -1,28 +1,566 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   RepoPulse · globals.css
+   ── CRITICAL LOAD GUARANTEE ──────────────────────────────────────────
+   Structural styles below live OUTSIDE any Tailwind @layer block so they
+   are always emitted. Tailwind reserves the right to *drop* any @layer
+   rules if its content scanner produces 0 matches for a run — which can
+   happen after a bad hot-reload or stale .next cache — so we keep the
+   app-shell styles independent. Reusable component skins still live in
+   @layer components so they can be safely overridden with utilities.
+   ═══════════════════════════════════════════════════════════════════════ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  html {
-    background-color: #0d1117;
-    color: #c9d1d9;
-    font-family: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
-  }
-
-  a {
-    color: #58a6ff;
-  }
-
-  a:hover {
-    text-decoration: underline;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
+/* ── 1. Fonts ───────────────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Boogaloo';
+  src: local('Boogaloo'),
+       url('/Boogaloo-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* Chart canvas max-height */
+/* ── 2. Design tokens (always available) ─────────────────────────────── */
+:root {
+  --bg-base:      #0d1117;
+  --bg-surface:   #161b22;
+  --border:       #30363d;
+  --text:         #c9d1d9;
+  --text-muted:   #8b949e;
+  --accent:       #58a6ff;
+  --purple:       #bc8cff;
+  --purple-cta:   #a371f7;
+  --success:      #3fb950;
+  --warning:      #d29922;
+  --danger:       #f85149;
+  --font-boogaloo: 'Boogaloo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* ── 3. Base element reset / page chrome ─────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: var(--bg-base);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg-base);
+  color: var(--text);
+  position: relative;
+  overflow-x: hidden;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+::selection {
+  background-color: rgba(188, 140, 255, 0.35);
+  color: #fff;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+h1, h2, h3, h4, h5, h6,
+.font-boogaloo,
+.heading-display {
+  font-family: var(--font-boogaloo);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+code, pre, kbd, samp, .font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ── 4. Page backdrop layers — always rendered ───────────────────────── */
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0);
+  background-size: 32px 32px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 40%, transparent 100%);
+          mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 40%, transparent 100%);
+}
+
+.radial-wash {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 20% -10%, rgba(163, 113, 247, 0.18), transparent 60%),
+    radial-gradient(45% 35% at 85% 10%,  rgba(88, 166, 255, 0.12),  transparent 60%);
+}
+
+/* ── 5. Navbar (app shell) — never stripped ──────────────────────────── */
+.nav-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--border);
+  background-color: rgba(22, 27, 34, 0.85);
+  -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(10px);
+}
+
+.nav-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  transition: color 180ms ease-out;
+}
+.nav-logo:hover {
+  color: var(--purple);
+  text-decoration: none;
+}
+.nav-logo:hover .nav-logo-dot {
+  box-shadow: 0 0 16px rgba(188, 140, 255, 1);
+  transform: scale(1.15);
+}
+.nav-logo-dot {
+  display: inline-block;
+  height: 0.625rem;
+  width: 0.625rem;
+  border-radius: 9999px;
+  background-color: var(--purple);
+  box-shadow: 0 0 12px rgba(188, 140, 255, 0.8);
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+/* ── 6. GitHub icon button (navbar) ─────────────────────────────────── */
+.github-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background-color: transparent;
+  transition: background-color 180ms ease-out,
+              border-color 180ms ease-out,
+              transform 140ms ease-out,
+              box-shadow 180ms ease-out;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+.github-icon-btn:hover {
+  background-color: var(--bg-surface);
+  border-color: rgba(188, 140, 255, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px -14px rgba(163, 113, 247, 0.6);
+  text-decoration: none;
+}
+.github-icon-btn img {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+/* ── 7. Modal / dialog (form launcher) ───────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background-color: rgba(0, 0, 0, 0.72);
+  -webkit-backdrop-filter: blur(6px);
+          backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-panel {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  border-radius: 0.9rem;
+  border: 1px solid var(--border);
+  background-color: var(--bg-surface);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 40px 90px -20px rgba(0,0,0,0.8),
+    0 0 0 1px rgba(163,113,247,0.08);
+  overflow: hidden;
+}
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 0.75rem;
+}
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 0.5rem;
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 160ms ease-out, color 160ms ease-out, border-color 160ms ease-out;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.modal-close:hover {
+  background-color: rgba(248, 81, 73, 0.12);
+  border-color: rgba(248, 81, 73, 0.4);
+  color: var(--danger);
+}
+.modal-body {
+  padding: 0 1.5rem 1.5rem;
+}
+
+/* ── 8. Pill badge (hero) ────────────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--purple);
+  background-color: rgba(163, 113, 247, 0.12);
+  border: 1px solid rgba(163, 113, 247, 0.25);
+  border-radius: 9999px;
+  -webkit-backdrop-filter: blur(4px);
+          backdrop-filter: blur(4px);
+}
+.pill-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background-color: var(--purple);
+  box-shadow: 0 0 8px rgba(188, 140, 255, 0.8);
+}
+
+/* ── 9. Console window ───────────────────────────────────────────────── */
+.console {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background-color: var(--bg-surface);
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 30px 60px -25px rgba(0,0,0,0.75);
+}
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+  background-color: #11161d;
+  border-bottom: 1px solid var(--border);
+}
+.console-lights { display: flex; gap: 0.5rem; }
+.console-light {
+  width: 0.75rem; height: 0.75rem;
+  border-radius: 9999px;
+  background-color: #30363d;
+}
+.console-light.red    { background-color: #ff5f56; }
+.console-light.yellow { background-color: #ffbd2e; }
+.console-light.green  { background-color: #27c93f; }
+
+.console-title, .console-status {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.console-status {
+  font-size: 0.7rem;
+  color: var(--success);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.console-body {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.75;
+  padding: 1.5rem 1.75rem;
+  background-color: #11161d;
+  color: var(--text);
+  min-height: 260px;
+  overflow-x: auto;
+}
+.console-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.console-ps1 {
+  color: var(--purple);
+  user-select: none;
+  margin-right: 0.5rem;
+}
+.console-out {
+  color: var(--text-muted);
+  padding-left: 0.5rem;
+}
+.console-out.ok   { color: var(--success); }
+.console-out.val  { color: var(--purple); }
+.console-out.meta { color: var(--text-muted); }
+
+.console-caret {
+  display: inline-block;
+  width: 0.55ch;
+  background-color: var(--purple);
+  color: transparent;
+  animation: caret-blink 1s steps(2, start) infinite;
+  margin-left: 2px;
+  transform: translateY(2px);
+  height: 1em;
+}
+
+.console-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.25rem;
+  background-color: #0f141a;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+.console-footer-stats { display: flex; gap: 1.25rem; }
+.console-footer-stat b { color: var(--text); font-weight: 600; }
+.console-progress {
+  position: relative;
+  width: 140px;
+  height: 4px;
+  background-color: var(--border);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.console-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--purple), var(--accent));
+  border-radius: 9999px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   END of structural styles.
+   Reusable component skin classes below. Placed inside @layer components
+   so utility classes (e.g. `rounded-none`, `p-10`) can override them.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* Surface card */
+  .surface-card {
+    position: relative;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 10px 30px -15px rgba(0,0,0,0.6);
+    transition: border-color 200ms ease-out, transform 200ms ease-out, box-shadow 200ms ease-out;
+  }
+  .surface-card:hover {
+    border-color: rgba(188, 140, 255, 0.35);
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 20px 40px -20px rgba(163, 113, 247, 0.25);
+  }
+
+  /* Purple CTA */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: var(--purple-cta);
+    color: #0d1117;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid transparent;
+    transition: background-color 160ms ease-out, transform 120ms ease-out, box-shadow 160ms ease-out;
+    box-shadow: 0 8px 24px -10px rgba(163, 113, 247, 0.6);
+    cursor: pointer;
+    user-select: none;
+    text-decoration: none;
+  }
+  .btn-primary:hover {
+    background-color: rgba(163, 113, 247, 0.92);
+    text-decoration: none;
+    box-shadow: 0 12px 32px -10px rgba(163, 113, 247, 0.75);
+  }
+  .btn-primary:active        { transform: scale(0.98); }
+  .btn-primary:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgba(163, 113, 247, 0.35),
+      0 8px 24px -10px rgba(163, 113, 247, 0.6);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: transparent;
+    color: var(--text);
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--border);
+    transition: background-color 160ms ease-out, border-color 160ms ease-out, transform 120ms ease-out;
+    cursor: pointer;
+    user-select: none;
+    text-decoration: none;
+  }
+  .btn-ghost:hover {
+    background-color: var(--bg-surface);
+    border-color: rgba(188, 140, 255, 0.4);
+    text-decoration: none;
+  }
+  .btn-ghost:active        { transform: scale(0.98); }
+  .btn-ghost:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(163, 113, 247, 0.35);
+  }
+
+  /* Form field */
+  .field-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.375rem;
+  }
+  .field-input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    background-color: #0d1117;
+    color: var(--text);
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    transition: border-color 160ms ease-out, box-shadow 160ms ease-out;
+  }
+  .field-input::placeholder { color: var(--text-muted); }
+  .field-input:focus {
+    outline: none;
+    border-color: rgba(88, 166, 255, 0.6);
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.25);
+  }
+
+  /* Alerts */
+  .alert-error {
+    border-radius: 0.5rem;
+    border: 1px solid rgba(248, 81, 73, 0.4);
+    background-color: rgba(248, 81, 73, 0.1);
+    color: var(--danger);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .alert-warn {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--warning);
+  }
+
+  /* Feature card */
+  .feature-card {
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background-color: var(--bg-surface);
+    padding: 1.5rem;
+    transition: border-color 200ms ease-out, transform 200ms ease-out, background-color 200ms ease-out;
+  }
+  .feature-card:hover {
+    border-color: rgba(188, 140, 255, 0.35);
+    transform: translateY(-2px);
+    background-color: rgba(22, 27, 34, 0.95);
+  }
+  .feature-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.375rem;
+  }
+  .feature-desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* Usage meter bar */
+  .usage-track {
+    height: 6px;
+    width: 100%;
+    border-radius: 9999px;
+    background-color: var(--border);
+    overflow: hidden;
+  }
+  .usage-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transform-origin: left center;
+  }
+  .usage-fill.success { background-color: var(--success); }
+  .usage-fill.warning { background-color: var(--warning); }
+  .usage-fill.danger  { background-color: var(--danger); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Keyframes + utilities
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes caret-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
 .chart-container canvas {
   max-height: 280px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html                             { scroll-behavior: auto; }
+  .console-caret                    { animation: none; }
+  .grid-overlay, .radial-wash       { animation: none !important; }
+  .surface-card, .feature-card,
+  .btn-primary, .btn-ghost,
+  .github-icon-btn, .nav-logo-dot   { transition: none !important; }
 }

@@ -93,9 +93,9 @@ export default function DashboardPage() {
         <p className="text-muted">{error}</p>
         <Link
           href="/"
-          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-[#0d1117] hover:bg-accent/90"
+          className="btn-primary"
         >
-          Back to search
+          ← Back to RepoPulse
         </Link>
       </div>
     );

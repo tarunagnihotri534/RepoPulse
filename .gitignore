@@ -8,10 +8,19 @@ out/
 # TypeScript build output (legacy src/ compilation)
 dist/
 
-# Environment files — never commit secrets
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Environment files — NEVER commit secrets
+.env
 .env.local
+.env.*.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
 
 # SQLite database — persisted on the server, not in the repo
@@ -19,6 +28,14 @@ dist/
 *.db-journal
 *.db-shm
 *.db-wal
+prisma/*.db
+prisma/*.db-journal
+prisma/*.db-shm
+prisma/*.db-wal
+tracker.db
+tracker.db-journal
+tracker.db-shm
+tracker.db-wal
 
 # Prisma generated client (regenerated on install)
 # node_modules/@prisma/client is covered above
@@ -35,3 +52,7 @@ npm-debug.log*
 
 # Vercel
 .vercel
+
+# Temporary work copies of public assets (committed only via public/)
+/Boogaloo-Regular.ttf
+/github.png
