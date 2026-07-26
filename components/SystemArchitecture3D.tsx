@@ -253,7 +253,7 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
   const accent = accentOverride ?? def.accent;
   const size = def.size ?? 1;
   // logo disc diameter per shape, with per-node scaling via logoSize
-  const logoPx = Math.round(40 * (def.shape === 'ico' ? 0.85 : 1) * (def.logoSize ?? 1));
+  const logoPx = Math.round(96 * (def.shape === 'ico' ? 0.85 : 1) * (def.logoSize ?? 1));
 
   useFrame((_, dt) => {
     if (meshRef.current) {
@@ -264,11 +264,11 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
 
   const geometry =
     def.shape === 'box' ? (
-      <RoundedBox args={[size, size, size]} radius={0.15} smoothness={4} />
+      <RoundedBox args={[size * 0.55, size * 0.55, size * 0.55]} radius={0.15 * 0.55} smoothness={4} />
     ) : def.shape === 'sphere' ? (
-      <Sphere args={[size * 0.58, 32, 32]} />
+      <Sphere args={[size * 0.58 * 0.55, 32, 32]} />
     ) : (
-      <Icosahedron args={[size * 0.58, 0]} />
+      <Icosahedron args={[size * 0.58 * 0.55, 0]} />
     );
 
   return (
@@ -289,14 +289,14 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
         <mesh>
           {def.shape === 'box' ? (
             <RoundedBox
-              args={[size * 1.08, size * 1.08, size * 1.08]}
-              radius={0.17}
+              args={[size * 1.08 * 0.55, size * 1.08 * 0.55, size * 1.08 * 0.55]}
+              radius={0.17 * 0.55}
               smoothness={3}
             />
           ) : def.shape === 'sphere' ? (
-            <Sphere args={[size * 0.64, 32, 32]} />
+            <Sphere args={[size * 0.64 * 0.55, 32, 32]} />
           ) : (
-            <Icosahedron args={[size * 0.64, 0]} />
+            <Icosahedron args={[size * 0.64 * 0.55, 0]} />
           )}
           <meshBasicMaterial
             color={accent}
@@ -338,8 +338,8 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
             alt={def.label}
             draggable={false}
             style={{
-              width: '70%',
-              height: '70%',
+              width: '86%',
+              height: '86%',
               objectFit: 'contain',
               display: 'block',
               userSelect: 'none',
