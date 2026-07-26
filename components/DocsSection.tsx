@@ -14,7 +14,7 @@
  * No box-card grid — pure flowing sections separated by a faint divider.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -251,6 +251,19 @@ const ENTRIES: DocEntry[] = [
 
 export default function DocsSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [displayIndex, setDisplayIndex] = useState<number>(0);
+  const [fadeState, setFadeState] = useState<'in' | 'out'>('in');
+
+  const handleTabClick = (index: number) => {
+    if (index === activeIndex) return;
+    setActiveIndex(index);
+    setFadeState('out');
+    setTimeout(() => {
+      setDisplayIndex(index);
+      setFadeState('in');
+    }, 200);
+  };
 
   useEffect(() => {
     const root = sectionRef.current;
@@ -262,23 +275,24 @@ export default function DocsSection() {
 
     if (reduced) return;
 
-    const rows = gsap.utils.toArray<HTMLElement>('[data-doc-row]', root);
-    rows.forEach((row) => {
-      const left     = row.querySelector('[data-doc-left]')     as HTMLElement | null;
-      const terminal = row.querySelector('[data-doc-terminal]') as HTMLElement | null;
+    const header = root.querySelector('[data-docs-header]') as HTMLElement | null;
+    const tabs = gsap.utils.toArray<HTMLElement>('[data-doc-tab]', root);
+    const terminal = root.querySelector('[data-doc-terminal]') as HTMLElement | null;
 
-      gsap.set(left,     { opacity: 0, x: -18 });
-      gsap.set(terminal, { opacity: 0, x:  18 });
+    gsap.set(header, { opacity: 0, y: 15 });
+    gsap.set(tabs, { opacity: 0, x: -20 });
+    gsap.set(terminal, { opacity: 0, x: 20 });
 
-      ScrollTrigger.create({
-        trigger: row,
-        start:   'top 82%',
-        once:    true,
-        onEnter: () => {
-          gsap.to(left,     { opacity: 1, x: 0, duration: 0.55, ease: 'power3.out' });
-          gsap.to(terminal, { opacity: 1, x: 0, duration: 0.55, ease: 'power3.out', delay: 0.08 });
-        },
-      });
+    ScrollTrigger.create({
+      trigger: root,
+      start: 'top 80%',
+      once: true,
+      onEnter: () => {
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 0.6 } });
+        tl.to(header, { opacity: 1, y: 0 })
+          .to(tabs, { opacity: 1, x: 0, stagger: 0.08 }, '-=0.35')
+          .to(terminal, { opacity: 1, x: 0 }, '-=0.4');
+      },
     });
 
     return () => {
@@ -299,7 +313,7 @@ export default function DocsSection() {
       aria-label="Documentation"
     >
       {/* Heading */}
-      <div className="mb-12 text-center">
+      <div className="mb-12 text-center" data-docs-header>
         <p className="text-[10px] uppercase tracking-[0.22em] text-purple font-semibold mb-2">
           Documentation
         </p>
@@ -313,39 +327,41 @@ export default function DocsSection() {
         </p>
       </div>
 
-      {/* Entries */}
-      <div className="flex flex-col">
-        {ENTRIES.map((entry, i) => (
-          <div key={entry.title}>
-            {/* Divider between entries */}
-            {i > 0 && (
-              <div style={{
-                height: 1,
-                background: 'linear-gradient(90deg, transparent, #30363d 30%, #30363d 70%, transparent)',
-                margin: '3rem 0',
-              }} />
-            )}
-
-            {/* Row */}
-            <div
-              data-doc-row
-              className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start"
-            >
-              {/* Left — title + description */}
-              <div data-doc-left className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
+      {/* Interactive Layout container */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start mt-6">
+        
+        {/* Left Rail: Clickable Feature Blocks */}
+        <div className="flex flex-col gap-4 md:col-span-5">
+          {ENTRIES.map((entry, i) => {
+            const isActive = i === activeIndex;
+            return (
+              <button
+                key={entry.title}
+                data-doc-tab
+                onClick={() => handleTabClick(i)}
+                className="text-left w-full rounded-xl border p-5 transition-all duration-200 focus:outline-none hover:border-[#bc8cff55]"
+                style={{
+                  borderColor: isActive ? '#bc8cff' : '#30363d',
+                  backgroundColor: isActive ? 'rgba(188, 140, 255, 0.04)' : '#0d1117',
+                  borderLeftWidth: isActive ? 4 : 1,
+                  borderLeftColor: isActive ? '#bc8cff' : '#30363d',
+                  boxShadow: isActive ? '0 4px 20px -5px rgba(188, 140, 255, 0.08)' : 'none',
+                }}
+              >
+                <div className="flex items-center gap-3 mb-2">
                   <span
                     style={{
-                      fontSize: '1.3rem',
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
+                      fontSize: '1.2rem',
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
                       border: '1px solid #30363d',
-                      background: 'rgba(188,140,255,0.08)',
+                      background: isActive ? 'rgba(188,140,255,0.12)' : 'rgba(188,140,255,0.04)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
+                      transition: 'background-color 200ms ease',
                     }}
                     aria-hidden="true"
                   >
@@ -353,34 +369,45 @@ export default function DocsSection() {
                   </span>
                   <h3 style={{
                     fontFamily: 'var(--font-boogaloo)',
-                    fontSize: '1.15rem',
-                    color: '#eceef1',
+                    fontSize: '1.1rem',
+                    color: isActive ? '#ffffff' : '#eceef1',
                     margin: 0,
                     letterSpacing: '0.01em',
+                    transition: 'color 200ms ease',
                   }}>
                     {entry.title}
                   </h3>
                 </div>
 
                 <p style={{
-                  fontSize: '0.875rem',
-                  color: '#8b949e',
-                  lineHeight: 1.75,
+                  fontSize: '0.82rem',
+                  color: isActive ? '#c9d1d9' : '#8b949e',
+                  lineHeight: 1.6,
                   margin: 0,
-                  paddingLeft: '0.25rem',
+                  paddingLeft: '0.15rem',
                   fontFamily: 'var(--font-lato)',
+                  transition: 'color 200ms ease',
                 }}>
                   {entry.desc}
                 </p>
-              </div>
+              </button>
+            );
+          })}
+        </div>
 
-              {/* Right — terminal */}
-              <div data-doc-terminal>
-                <Terminal {...entry.terminal} />
-              </div>
-            </div>
+        {/* Right side: Sticky Terminal-style code panel */}
+        <div data-doc-terminal className="md:col-span-7 md:sticky md:top-28 w-full">
+          <div
+            style={{
+              opacity: fadeState === 'in' ? 1 : 0,
+              transform: fadeState === 'in' ? 'translateY(0)' : 'translateY(8px)',
+              transition: 'opacity 200ms ease, transform 200ms ease',
+            }}
+          >
+            <Terminal {...ENTRIES[displayIndex].terminal} />
           </div>
-        ))}
+        </div>
+
       </div>
     </section>
   );
