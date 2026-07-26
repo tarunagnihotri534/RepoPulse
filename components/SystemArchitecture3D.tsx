@@ -66,7 +66,7 @@ const NODES: NodeDef[] = [
     color: '#161b22',
     accent: COLORS.purple,
     size: 0.95,
-    logo: 'https://cdn.simpleicons.org/nextdotjs/000000',
+    logo: 'https://cdn.simpleicons.org/nextdotjs/ffffff',
     logoBg: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
   },
   {
@@ -78,7 +78,7 @@ const NODES: NodeDef[] = [
     color: '#0f2a17',
     accent: COLORS.green,
     size: 1.0,
-    logo: 'https://cdn.simpleicons.org/prisma/2D3748',
+    logo: 'https://cdn.simpleicons.org/prisma/ffffff',
     logoBg: 'linear-gradient(135deg, #ffffff 0%, #ecfeff 100%)',
   },
   {
@@ -102,7 +102,7 @@ const NODES: NodeDef[] = [
     color: '#161b22',
     accent: COLORS.blue,
     size: 1.0,
-    logo: '/github.png',
+    logo: 'https://cdn.simpleicons.org/github/ffffff',
     logoBg: 'linear-gradient(135deg, #0a0a0a 0%, #1f2937 100%)',
   },
   {
@@ -249,106 +249,56 @@ function buildCatmullPath(a: THREE.Vector3, b: THREE.Vector3, via: [number, numb
    ───────────────────────────────────────────────────────────── */
 
 function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boolean; accentOverride?: string }) {
-  const meshRef = useRef<THREE.Mesh>(null);
   const accent = accentOverride ?? def.accent;
   const size = def.size ?? 1;
   // logo disc diameter per shape, with per-node scaling via logoSize
   const logoPx = Math.round(96 * (def.shape === 'ico' ? 0.85 : 1) * (def.logoSize ?? 1));
 
-  useFrame((_, dt) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += dt * 0.08;
-      meshRef.current.rotation.x += dt * 0.03;
-    }
-  });
-
-  const geometry =
-    def.shape === 'box' ? (
-      <RoundedBox args={[size * 0.55, size * 0.55, size * 0.55]} radius={0.15 * 0.55} smoothness={4} />
-    ) : def.shape === 'sphere' ? (
-      <Sphere args={[size * 0.58 * 0.55, 32, 32]} />
-    ) : (
-      <Icosahedron args={[size * 0.58 * 0.55, 0]} />
-    );
-
   return (
     <group position={def.position}>
       <Float speed={1.2} rotationIntensity={0.25} floatIntensity={0.4}>
-        <mesh ref={meshRef} castShadow receiveShadow>
-          {geometry}
-          <meshStandardMaterial
-            color={def.color}
-            metalness={0.75}
-            roughness={0.22}
-            emissive={accent}
-            emissiveIntensity={active ? 0.35 : 0.08}
-            transparent
-            opacity={active ? 0.92 : 0.78}
-          />
-        </mesh>
-        <mesh>
-          {def.shape === 'box' ? (
-            <RoundedBox
-              args={[size * 1.08 * 0.55, size * 1.08 * 0.55, size * 1.08 * 0.55]}
-              radius={0.17 * 0.55}
-              smoothness={3}
-            />
-          ) : def.shape === 'sphere' ? (
-            <Sphere args={[size * 0.64 * 0.55, 32, 32]} />
-          ) : (
-            <Icosahedron args={[size * 0.64 * 0.55, 0]} />
-          )}
-          <meshBasicMaterial
-            color={accent}
-            transparent
-            opacity={active ? 0.26 : 0.08}
-            side={THREE.BackSide}
-          />
-        </mesh>
-      </Float>
-
-      {/* Logo disc centered on the node (billboard via Html) */}
-      <Html
-        position={[0, 0, 0]}
-        center
-        distanceFactor={4.2}
-        zIndexRange={[40, 10]}
-        style={{ pointerEvents: 'none' }}
-      >
-        <div
-          aria-hidden
-          style={{
-            width: logoPx,
-            height: logoPx,
-            borderRadius: '50%',
-            display: 'grid',
-            placeItems: 'center',
-            background: def.logoBg ?? '#ffffff',
-            boxShadow: `0 0 0 2px rgba(255,255,255,0.08) inset, 0 0 0 2px ${accent}${active ? 'ee' : '55'}, ${
-              active ? `0 14px 40px -10px ${accent}99, 0 0 44px ${accent}55` : `0 10px 24px -12px rgba(0,0,0,0.7)`
-            }`,
-            transform: `scale(${active ? 1.06 : 1})`,
-            transition: 'transform 220ms ease-out, box-shadow 240ms ease-out',
-            overflow: 'hidden',
-          }}
+        {/* Logo disc centered on the node (billboard via Html) */}
+        <Html
+          position={[0, 0, 0]}
+          center
+          distanceFactor={4.2}
+          zIndexRange={[40, 10]}
+          style={{ pointerEvents: 'none' }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={def.logo}
-            alt={def.label}
-            draggable={false}
+          <div
+            aria-hidden
             style={{
-              width: '86%',
-              height: '86%',
-              objectFit: 'contain',
-              display: 'block',
-              userSelect: 'none',
-              // @ts-expect-error — non-standard drag prevention, harmless for actual DOM
-              WebkitUserDrag: 'none',
+              width: logoPx,
+              height: logoPx,
+              borderRadius: '50%',
+              display: 'grid',
+              placeItems: 'center',
+              background: 'transparent',
+              border: `2px solid ${accent}${active ? 'ff' : '44'}`,
+              boxShadow: active ? `0 0 20px ${accent}aa` : `0 0 10px ${accent}22`,
+              transform: `scale(${active ? 1.08 : 1})`,
+              transition: 'transform 220ms ease-out, border-color 220ms ease-out, box-shadow 220ms ease-out',
+              overflow: 'hidden',
             }}
-          />
-        </div>
-      </Html>
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={def.logo}
+              alt={def.label}
+              draggable={false}
+              style={{
+                width: '86%',
+                height: '86%',
+                objectFit: 'contain',
+                display: 'block',
+                userSelect: 'none',
+                // @ts-expect-error — non-standard drag prevention, harmless for actual DOM
+                WebkitUserDrag: 'none',
+              }}
+            />
+          </div>
+        </Html>
+      </Float>
 
       {/* Hanging short-label tag on top */}
       <Html
