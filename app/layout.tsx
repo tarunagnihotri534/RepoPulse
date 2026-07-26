@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
 
         <footer className="relative z-10 border-t border-border text-center text-sm text-muted py-8 mt-10 flex flex-col items-center gap-3">
-          <div>Open-source health metrics for public GitHub repositories</div>
+          <div>Author-Tarun kumar Agnihotri</div>
           <div className="flex items-center justify-center gap-6">
             <a
               href="https://github.com/tarunagnihotri534"
