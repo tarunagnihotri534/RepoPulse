@@ -335,7 +335,7 @@ export default function DocsSection() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start mt-4">
         
         {/* Left Rail: Clickable Feature Blocks */}
-        <div className="flex flex-col gap-4 md:col-span-7">
+        <div className="flex flex-col gap-2 md:col-span-7">
           {ENTRIES.map((entry, i) => {
             const isActive = i === activeIndex;
             return (
@@ -343,57 +343,34 @@ export default function DocsSection() {
                 key={entry.title}
                 data-doc-tab
                 onClick={() => handleTabClick(i)}
-                className="text-left w-full rounded-xl border p-5 transition-all duration-200 focus:outline-none hover:border-[#bc8cff55]"
+                className="text-left w-full transition-all duration-200 focus:outline-none flex items-center gap-3 pl-4 border-l-2 py-3 hover:text-white"
                 style={{
-                  borderColor: isActive ? '#bc8cff' : '#30363d',
-                  backgroundColor: isActive ? 'rgba(188, 140, 255, 0.04)' : '#0d1117',
-                  borderLeftWidth: isActive ? 4 : 1,
-                  borderLeftColor: isActive ? '#bc8cff' : '#30363d',
-                  boxShadow: isActive ? '0 4px 20px -5px rgba(188, 140, 255, 0.08)' : 'none',
+                  borderLeftColor: isActive ? '#bc8cff' : 'transparent',
+                  backgroundColor: 'transparent',
+                  color: isActive ? '#ffffff' : '#8b949e',
                 }}
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <span
-                    style={{
-                      fontSize: '1.2rem',
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      border: '1px solid #30363d',
-                      background: isActive ? 'rgba(188,140,255,0.12)' : 'rgba(188,140,255,0.04)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      transition: 'background-color 200ms ease',
-                    }}
-                    aria-hidden="true"
-                  >
-                    {entry.icon}
-                  </span>
-                  <h3 style={{
-                    fontFamily: 'var(--font-boogaloo)',
+                <span
+                  style={{
                     fontSize: '1.1rem',
-                    color: isActive ? '#ffffff' : '#eceef1',
-                    margin: 0,
-                    letterSpacing: '0.01em',
-                    transition: 'color 200ms ease',
-                  }}>
-                    {entry.title}
-                  </h3>
-                </div>
-
-                <p style={{
-                  fontSize: '0.82rem',
-                  color: isActive ? '#c9d1d9' : '#8b949e',
-                  lineHeight: 1.6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                  aria-hidden="true"
+                >
+                  {entry.icon}
+                </span>
+                <h3 style={{
+                  fontFamily: 'var(--font-boogaloo)',
+                  fontSize: '1.05rem',
+                  color: 'inherit',
                   margin: 0,
-                  paddingLeft: '0.15rem',
-                  fontFamily: 'var(--font-lato)',
-                  transition: 'color 200ms ease',
+                  letterSpacing: '0.01em',
                 }}>
-                  {entry.desc}
-                </p>
+                  {entry.title}
+                </h3>
               </button>
             );
           })}
