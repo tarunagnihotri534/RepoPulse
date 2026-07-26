@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import FloatingBlocks from '@/components/FloatingBlocks';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -14,11 +15,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-base text-text">
         <div className="grid-overlay" aria-hidden="true" />
         <div className="radial-wash" aria-hidden="true" />
+        <FloatingBlocks />
 
         <header className="nav-header sticky top-0 z-50 border-b border-border">
           <div className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between">
             <a href="/" className="nav-logo flex items-center gap-2 font-semibold text-text no-underline">
-              <span aria-hidden="true" className="nav-logo-dot inline-block h-2.5 w-2.5 rounded-full bg-purple shadow-[0_0_12px_rgba(188,140,255,0.8)]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/artificial-heart.png"
+                alt="RepoPulse Logo"
+                className="h-7 w-7 object-contain"
+                style={{ filter: 'drop-shadow(0 0 8px rgba(188, 140, 255, 0.55))' }}
+              />
               <span className="font-boogaloo tracking-wide text-lg">RepoPulse</span>
             </a>
             <nav className="flex items-center gap-2">

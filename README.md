@@ -1,4 +1,8 @@
-# MCP Repository Health Tracker
+<div align="center">
+  <img src="./artificial-heart.png" alt="RepoPulse Logo" width="120" height="120" />
+</div>
+
+# MCP Repository Health Tracker · RepoPulse
 
 A hosted, multi-tenant web app that lets any visitor submit a public GitHub
 repository and get a live health dashboard — issue response times, PR review

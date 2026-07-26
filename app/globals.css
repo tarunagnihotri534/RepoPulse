@@ -112,6 +112,336 @@ code, pre, kbd, samp, .font-mono {
     radial-gradient(45% 35% at 85% 10%,  rgba(88, 166, 255, 0.12),  transparent 60%);
 }
 
+.floating-blocks {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.floating-block {
+  position: absolute;
+  border-radius: 6px;
+  border: 1px solid rgba(188, 140, 255, 0.15);
+  background: linear-gradient(135deg, rgba(163, 113, 247, 0.08), rgba(88, 166, 255, 0.05));
+  backdrop-filter: blur(2px);
+  box-shadow: 0 4px 20px -5px rgba(163, 113, 247, 0.15);
+}
+
+/* ── System Design Section ──────────────────────────────────────────── */
+.sysdesign-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .sysdesign-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.sysdesign-card {
+  position: relative;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background-color: rgba(22, 27, 34, 0.7);
+  padding: 1.75rem 1.5rem;
+  overflow: hidden;
+  transition: border-color 200ms ease-out, transform 200ms ease-out, background-color 200ms ease-out;
+}
+.sysdesign-card:hover {
+  border-color: rgba(188, 140, 255, 0.35);
+  transform: translateY(-2px);
+  background-color: rgba(22, 27, 34, 0.92);
+}
+
+.sysdesign-card-title {
+  font-family: var(--font-boogaloo);
+  font-size: 1.35rem;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+.sysdesign-card-desc {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+}
+
+/* Card 1: Gauge / speedometer */
+.sysdesign-gauge-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.6 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sysdesign-gauge-arc {
+  position: relative;
+  width: 72%;
+  aspect-ratio: 2 / 1.2;
+  overflow: hidden;
+}
+.sysdesign-gauge-arc::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgba(48, 54, 61, 0.8);
+  border-bottom: none;
+  border-radius: 9999px 9999px 0 0 / 100% 100% 0 0;
+}
+.sysdesign-gauge-fill {
+  position: absolute;
+  inset: 0;
+  border: 3px solid transparent;
+  border-top-color: var(--success);
+  border-left-color: var(--success);
+  border-right-color: rgba(63, 185, 80, 0.2);
+  border-bottom: none;
+  border-radius: 9999px 9999px 0 0 / 100% 100% 0 0;
+  transform-origin: 50% 100%;
+  transform: rotate(-90deg);
+}
+.sysdesign-gauge-ticks {
+  position: absolute;
+  inset: 12% 14% 25%;
+}
+.sysdesign-gauge-tick {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 1px;
+  height: 8px;
+  background-color: rgba(139, 148, 158, 0.5);
+  transform-origin: 50% 100%;
+}
+.sysdesign-gauge-needle {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 3px;
+  height: 45%;
+  background: linear-gradient(to top, var(--success), rgba(63, 185, 80, 0.3));
+  border-radius: 2px;
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) rotate(-70deg);
+  box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
+}
+.sysdesign-gauge-center {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  background-color: var(--success);
+  border-radius: 9999px;
+  transform: translate(-50%, 50%);
+  box-shadow: 0 0 12px rgba(63, 185, 80, 0.7);
+}
+.sysdesign-gauge-value {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10%;
+  text-align: center;
+  font-family: var(--font-boogaloo);
+  font-size: 1.6rem;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.sysdesign-gauge-label {
+  position: absolute;
+  left: 14%;
+  bottom: 18%;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+/* Card 2: Isolated runtime 3D box */
+.sysdesign-runtime-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.6 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 800px;
+}
+.sysdesign-box-scene {
+  position: relative;
+  width: 70%;
+  height: 70%;
+  transform-style: preserve-3d;
+}
+.sysdesign-box-face {
+  position: absolute;
+  border: 1.5px solid var(--accent);
+  background-color: rgba(88, 166, 255, 0.08);
+}
+.sysdesign-box-face.front {
+  inset: 15% 20% 15% 20%;
+  box-shadow: 0 0 24px rgba(88, 166, 255, 0.25) inset;
+}
+.sysdesign-box-face.top {
+  left: 20%;
+  right: 20%;
+  top: 0;
+  height: 15%;
+  transform-origin: bottom;
+  transform: rotateX(-65deg);
+  background-color: rgba(88, 166, 255, 0.12);
+}
+.sysdesign-box-face.side {
+  right: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 20%;
+  transform-origin: left;
+  transform: rotateY(65deg);
+  background-color: rgba(88, 166, 255, 0.06);
+}
+.sysdesign-box-ghost {
+  position: absolute;
+  border: 1px dashed rgba(48, 54, 61, 0.6);
+  background-color: rgba(48, 54, 61, 0.12);
+}
+.sysdesign-box-ghost.g1 {
+  left: -18%;
+  top: 28%;
+  width: 32%;
+  height: 36%;
+  transform: rotate(18deg);
+}
+.sysdesign-box-ghost.g2 {
+  right: -20%;
+  bottom: 8%;
+  width: 36%;
+  height: 32%;
+  transform: rotate(-14deg);
+}
+.sysdesign-box-ghost.g3 {
+  left: 12%;
+  bottom: -12%;
+  width: 40%;
+  height: 28%;
+  transform: rotate(6deg);
+}
+.sysdesign-box-dashes {
+  position: absolute;
+  left: 50%;
+  top: 15%;
+  width: 60%;
+  height: 1px;
+  transform-origin: left;
+  background-image: repeating-linear-gradient(90deg, rgba(88, 166, 255, 0.4) 0 3px, transparent 3px 7px);
+  transform: rotate(90deg);
+  opacity: 0.6;
+}
+
+/* Card 3: Parallelization flowchart */
+.sysdesign-flow-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.55 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+}
+.sysdesign-flow {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.sysdesign-flow-node {
+  position: absolute;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  border: 1px solid;
+}
+.sysdesign-flow-node.saved-top {
+  top: 2%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.7rem;
+  color: #0d1117;
+  background-color: var(--success);
+  border-color: var(--success);
+  box-shadow: 0 0 12px rgba(63, 185, 80, 0.4);
+}
+.sysdesign-flow-node.saved-bot {
+  bottom: 0%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.7rem;
+  color: #0d1117;
+  background-color: var(--success);
+  border-color: var(--success);
+  box-shadow: 0 0 12px rgba(63, 185, 80, 0.4);
+}
+.sysdesign-flow-node.fork {
+  top: 22%;
+  width: 17%;
+  height: 11%;
+  color: var(--accent);
+  border-color: var(--accent);
+  background-color: rgba(88, 166, 255, 0.08);
+}
+.sysdesign-flow-node.fork.f1 { left: 2%; }
+.sysdesign-flow-node.fork.f2 { left: 28%; }
+.sysdesign-flow-node.fork.f3 { left: 54%; }
+.sysdesign-flow-node.fork.f4 { left: 80%; }
+
+.sysdesign-flow-node.stage {
+  width: 17%;
+  height: 9%;
+  color: var(--text-muted);
+  border-color: rgba(139, 148, 158, 0.4);
+  background-color: rgba(48, 54, 61, 0.35);
+}
+.sysdesign-flow-node.stage.s1 { top: 37%; }
+.sysdesign-flow-node.stage.s2 { top: 50%; }
+.sysdesign-flow-node.stage.s3 { top: 63%; }
+.sysdesign-flow-node.stage.s4 { top: 76%; }
+
+.sysdesign-flow-node.stage.c1 { left: 2%; }
+.sysdesign-flow-node.stage.c2 { left: 28%; }
+.sysdesign-flow-node.stage.c3 { left: 54%; }
+.sysdesign-flow-node.stage.c4 { left: 80%; }
+
+.sysdesign-flow-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.sysdesign-flow-line {
+  position: absolute;
+  border: none;
+  stroke: rgba(63, 185, 80, 0.55);
+  stroke-width: 1.5;
+  fill: none;
+}
+.sysdesign-flow-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
 /* ── 5. Navbar (app shell) — never stripped ──────────────────────────── */
 .nav-header {
   position: sticky;

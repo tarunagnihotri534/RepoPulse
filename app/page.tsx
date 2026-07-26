@@ -6,6 +6,7 @@ import { gsap } from 'gsap';
 import dynamic from 'next/dynamic';
 
 const Console = dynamic(() => import('@/components/Console'), { ssr: false });
+const SystemDesign = dynamic(() => import('@/components/SystemDesign'), { ssr: false });
 
 interface UsageData {
   month: string;
@@ -62,6 +63,7 @@ export default function HomePage() {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const ctx = gsap.context(() => {
+      const heroLogo     = root.querySelector('[data-hero-logo]')    as HTMLElement | null;
       const pill         = root.querySelector('[data-hero-pill]')    as HTMLElement | null;
       const h1           = root.querySelector('[data-hero-h1]')      as HTMLElement | null;
       const h1Accent     = root.querySelector('[data-hero-accent]')  as HTMLElement | null;
@@ -73,7 +75,7 @@ export default function HomePage() {
       const featureCards = gsap.utils.toArray<HTMLElement>('[data-feature]', root);
 
       const showAll = () => {
-        [pill, h1, h1Accent, p, usageWrap].forEach((el) => { if (el) gsap.set(el, { clearProps: 'all' }); });
+        [heroLogo, pill, h1, h1Accent, p, usageWrap].forEach((el) => { if (el) gsap.set(el, { clearProps: 'all' }); });
         [...ctas, ...partners, ...featureCards].forEach((el) => gsap.set(el, { clearProps: 'all' }));
       };
 
@@ -86,6 +88,7 @@ export default function HomePage() {
         return;
       }
 
+      if (heroLogo)     gsap.set(heroLogo,     { opacity: 0, y: -12, scale: 0.88 });
       if (pill)         gsap.set(pill,         { opacity: 0, y: -8 });
       if (h1)           gsap.set(h1,           { opacity: 0, y: 18 });
       if (h1Accent)     gsap.set(h1Accent,     { backgroundPosition: '0% 50%' });
@@ -98,13 +101,14 @@ export default function HomePage() {
 
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-      tl.to(pill,         { opacity: 1, y: 0,                           duration: 0.38 }, 0.02)
-        .to(h1,           { opacity: 1, y: 0,                           duration: 0.65 }, 0.14)
-        .to(p,            { opacity: 1, y: 0,                           duration: 0.52 }, 0.30)
-        .to(ctas,         { opacity: 1, y: 0, scale: 1, stagger: 0.08,  duration: 0.45 }, 0.48)
-        .to(partners,     { opacity: 1, y: 0, stagger: 0.04,            duration: 0.35 }, 0.62)
-        .to(usageWrap,    { opacity: 1, y: 0,                           duration: 0.40 }, 0.90)
-        .to(featureCards, { opacity: 1, y: 0, stagger: 0.06,            duration: 0.48 }, 1.00);
+      tl.to(heroLogo,     { opacity: 1, y: 0, scale: 1,                  duration: 0.55, ease: 'back.out(1.4)' }, 0.00)
+        .to(pill,         { opacity: 1, y: 0,                           duration: 0.38 }, 0.10)
+        .to(h1,           { opacity: 1, y: 0,                           duration: 0.65 }, 0.22)
+        .to(p,            { opacity: 1, y: 0,                           duration: 0.52 }, 0.38)
+        .to(ctas,         { opacity: 1, y: 0, scale: 1, stagger: 0.08,  duration: 0.45 }, 0.56)
+        .to(partners,     { opacity: 1, y: 0, stagger: 0.04,            duration: 0.35 }, 0.70)
+        .to(usageWrap,    { opacity: 1, y: 0,                           duration: 0.40 }, 0.98)
+        .to(featureCards, { opacity: 1, y: 0, stagger: 0.06,            duration: 0.48 }, 1.08);
 
       if (h1Accent) {
         tl.to(h1Accent, {
@@ -262,6 +266,16 @@ export default function HomePage() {
     <div ref={rootRef} className="flex flex-col items-center gap-14 py-6 md:py-10">
       {/* 1. Hero */}
       <section className="w-full text-center max-w-3xl flex flex-col items-center gap-6 mt-6">
+        <div data-hero-logo className="mb-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/artificial-heart.png"
+            alt="RepoPulse Logo"
+            className="h-20 w-20 md:h-24 md:w-24 object-contain mx-auto"
+            style={{ filter: 'drop-shadow(0 0 18px rgba(188, 140, 255, 0.55))' }}
+          />
+        </div>
+
         <span className="pill" data-hero-pill>
           <span className="pill-dot" />
           NEW · Repo Health Checker v1 is here
@@ -331,7 +345,10 @@ export default function HomePage() {
         <Console />
       </section>
 
-      {/* 3. Usage meter */}
+      {/* 3. System Design */}
+      <SystemDesign />
+
+      {/* 4. Usage meter */}
       {usage && (
         <section
           className="w-full max-w-xl"
@@ -361,7 +378,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* 4. Feature grid */}
+      {/* 5. Feature grid */}
       <section className="w-full max-w-4xl">
         <div className="text-center mb-6">
           <p className="text-xs uppercase tracking-[0.18em] text-purple font-semibold mb-1.5">
@@ -381,7 +398,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5. Health Checker modal */}
+      {/* 6. Health Checker modal */}
       {modalOpen && (
         <div ref={modalRef}>
           <div
