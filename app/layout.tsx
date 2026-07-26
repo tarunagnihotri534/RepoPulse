@@ -7,6 +7,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'RepoPulse — Repository Health Checker',
   description: 'On-demand GitHub repository health dashboard',
+  icons: {
+    icon: '/artificial-heart.png',
+  },
 };
 
 const REPO_URL = 'https://github.com/tarunagnihotri534/RepoPulse';
