@@ -395,13 +395,32 @@ export default function HomePage() {
             Everything you need to understand repo health
           </h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map(({ title, desc }) => (
-            <div key={title} className="feature-card" data-feature>
-              <p className="feature-title font-boogaloo text-lg">{title}</p>
-              <p className="feature-desc">{desc}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map(({ title, desc }, idx) => {
+            const borderClasses = [
+              // Default (mobile: 1 col)
+              'border-[#30363d]/30 pb-6 pt-6 last:pb-0 first:pt-0 border-b last:border-b-0',
+              // Tablet (sm: 2 cols)
+              'sm:border-b sm:py-6 sm:px-6',
+              idx % 2 === 0 ? 'sm:border-r' : 'sm:border-r-0',
+              idx >= 4 ? 'sm:border-b-0' : '',
+              idx === 0 || idx === 1 ? 'sm:pt-0' : '',
+              idx === 4 || idx === 5 ? 'sm:pb-0' : '',
+              // Desktop (lg: 3 cols)
+              'lg:py-8 lg:px-8',
+              idx % 3 !== 2 ? 'lg:border-r' : 'lg:border-r-0',
+              idx < 3 ? 'lg:border-b' : 'lg:border-b-0',
+              idx < 3 ? 'lg:pt-0' : 'lg:pt-8',
+              idx >= 3 ? 'lg:pb-0' : 'lg:pb-8',
+            ].join(' ');
+
+            return (
+              <div key={title} className={borderClasses} data-feature>
+                <p className="feature-title font-boogaloo text-lg mb-2">{title}</p>
+                <p className="feature-desc">{desc}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
