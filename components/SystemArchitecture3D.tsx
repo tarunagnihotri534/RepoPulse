@@ -54,7 +54,7 @@ const NODES: NodeDef[] = [
     accent: COLORS.blue,
     size: 1.1,
     logo: '/chrome-logo.svg',
-    logoBg: 'linear-gradient(135deg, #ffffff 0%, #ffffff 100%)',
+    logoBg: 'transparent',
     logoSize: 1.12,
   },
   {
@@ -66,8 +66,8 @@ const NODES: NodeDef[] = [
     color: '#161b22',
     accent: COLORS.purple,
     size: 0.95,
-    logo: 'https://cdn.simpleicons.org/nextdotjs/000000',
-    logoBg: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
+    logo: 'https://cdn.simpleicons.org/nextdotjs/ffffff',
+    logoBg: 'transparent',
   },
   {
     id: 'cache',
@@ -78,8 +78,8 @@ const NODES: NodeDef[] = [
     color: '#0f2a17',
     accent: COLORS.green,
     size: 1.0,
-    logo: 'https://cdn.simpleicons.org/prisma/2D3748',
-    logoBg: 'linear-gradient(135deg, #ffffff 0%, #ecfeff 100%)',
+    logo: 'https://cdn.simpleicons.org/prisma/ffffff',
+    logoBg: 'transparent',
   },
   {
     id: 'cap',
@@ -90,8 +90,8 @@ const NODES: NodeDef[] = [
     color: '#2a220f',
     accent: COLORS.amber,
     size: 0.85,
-    logo: 'https://cdn.simpleicons.org/cloudflare/F38020',
-    logoBg: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+    logo: 'https://cdn.simpleicons.org/cloudflare/ffffff',
+    logoBg: 'transparent',
   },
   {
     id: 'github',
@@ -102,8 +102,8 @@ const NODES: NodeDef[] = [
     color: '#161b22',
     accent: COLORS.blue,
     size: 1.0,
-    logo: '/github.png',
-    logoBg: 'linear-gradient(135deg, #0a0a0a 0%, #1f2937 100%)',
+    logo: 'https://cdn.simpleicons.org/github/ffffff',
+    logoBg: 'transparent',
   },
   {
     id: 'metrics',
@@ -114,8 +114,8 @@ const NODES: NodeDef[] = [
     color: '#161b22',
     accent: COLORS.purple,
     size: 1.05,
-    logo: 'https://cdn.simpleicons.org/chartdotjs/FF6384',
-    logoBg: 'linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%)',
+    logo: 'https://cdn.simpleicons.org/chartdotjs/ffffff',
+    logoBg: 'transparent',
   },
   {
     id: 'dashboard',
@@ -127,7 +127,7 @@ const NODES: NodeDef[] = [
     accent: COLORS.green,
     size: 1.15,
     logo: '/artificial-heart.png',
-    logoBg: 'linear-gradient(135deg, #0f2a17 0%, #14532d 100%)',
+    logoBg: 'transparent',
   },
 ];
 
@@ -253,7 +253,7 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
   const accent = accentOverride ?? def.accent;
   const size = def.size ?? 1;
   // logo disc diameter per shape, with per-node scaling via logoSize
-  const logoPx = Math.round(86 * (def.shape === 'ico' ? 0.85 : 1) * (def.logoSize ?? 1));
+  const logoPx = Math.round(44 * (def.shape === 'ico' ? 0.85 : 1) * (def.logoSize ?? 1));
 
   useFrame((_, dt) => {
     if (meshRef.current) {
@@ -323,7 +323,7 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
             borderRadius: '50%',
             display: 'grid',
             placeItems: 'center',
-            background: def.logoBg ?? '#ffffff',
+            background: def.logoBg ?? 'transparent',
             boxShadow: `0 0 0 2px rgba(255,255,255,0.08) inset, 0 0 0 2px ${accent}${active ? 'ee' : '55'}, ${
               active ? `0 14px 40px -10px ${accent}99, 0 0 44px ${accent}55` : `0 10px 24px -12px rgba(0,0,0,0.7)`
             }`,
@@ -338,8 +338,8 @@ function NodeMesh({ def, active, accentOverride }: { def: NodeDef; active: boole
             alt={def.label}
             draggable={false}
             style={{
-              width: '70%',
-              height: '70%',
+              width: '64%',
+              height: '64%',
               objectFit: 'contain',
               display: 'block',
               userSelect: 'none',
